@@ -1,0 +1,46 @@
+import {
+  ArrowDownToLine,
+  ArrowUpFromLine,
+  Building2,
+  HardHat,
+  LayoutDashboard,
+  type LucideIcon,
+  ReceiptText,
+  ShieldCheck,
+  Tags,
+  Users,
+  Wallet,
+} from 'lucide-react'
+import type { Perfil } from '@/types/app'
+
+export type ItemNav = {
+  rotulo: string
+  para: string
+  icone: LucideIcon
+  /** Se definido, só esses perfis veem o item. */
+  perfis?: readonly Perfil[]
+  filhos?: readonly ItemNav[]
+}
+
+export const LANCAMENTOS: readonly ItemNav[] = [
+  { rotulo: 'Saídas', para: '/lancamentos/saidas', icone: ArrowUpFromLine },
+  { rotulo: 'Recebimentos', para: '/lancamentos/recebimentos', icone: ArrowDownToLine },
+  { rotulo: 'Mão de obra', para: '/lancamentos/mao-de-obra', icone: Wallet },
+]
+
+export const NAVEGACAO: readonly ItemNav[] = [
+  { rotulo: 'Dashboard', para: '/', icone: LayoutDashboard },
+  { rotulo: 'Obras', para: '/obras', icone: Building2 },
+  { rotulo: 'Clientes', para: '/clientes', icone: Users },
+  { rotulo: 'Trabalhadores', para: '/trabalhadores', icone: HardHat },
+  { rotulo: 'Lançamentos', para: '/lancamentos', icone: ReceiptText, filhos: LANCAMENTOS },
+  { rotulo: 'Categorias', para: '/categorias', icone: Tags },
+  { rotulo: 'Usuários', para: '/usuarios', icone: ShieldCheck, perfis: ['owner'] },
+]
+
+/** Itens fixos do menu inferior no celular (o resto vai para "Mais"). */
+export const NAV_INFERIOR = ['/', '/obras', '/lancamentos', '/trabalhadores'] as const
+
+export function visivelPara(item: ItemNav, perfil: Perfil): boolean {
+  return !item.perfis || item.perfis.includes(perfil)
+}
