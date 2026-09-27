@@ -3,8 +3,6 @@ import { AppShell } from '@/components/layout/AppShell'
 import { LoginPage } from '@/features/auth/LoginPage'
 import { RequireAuth, RequirePerfil } from '@/features/auth/RequireAuth'
 import { EsqueciSenhaPage, NovaSenhaPage } from '@/features/auth/ResetPassword'
-import { CategoriasPage } from '@/features/categorias/CategoriasPage'
-import { ClientesPage } from '@/features/clientes/ClientesPage'
 import { DashboardPage } from '@/features/dashboard/DashboardPage'
 import {
   LancamentosPage,
@@ -12,10 +10,20 @@ import {
   RecebimentosPage,
   SaidasPage,
 } from '@/features/lancamentos/LancamentosPages'
-import { ObrasPage } from '@/features/obras/ObrasPage'
-import { TrabalhadoresPage } from '@/features/trabalhadores/TrabalhadoresPage'
 import { UsuariosPage } from '@/features/usuarios/UsuariosPage'
 import { NaoEncontradaPage } from '@/components/nao-encontrada'
+
+// Cadastros carregam sob demanda: o primeiro acesso (login + dashboard) fica mais leve.
+const obras = async () => ({ Component: (await import('@/features/obras/ObrasPage')).ObrasPage })
+const clientes = async () => ({
+  Component: (await import('@/features/clientes/ClientesPage')).ClientesPage,
+})
+const trabalhadores = async () => ({
+  Component: (await import('@/features/trabalhadores/TrabalhadoresPage')).TrabalhadoresPage,
+})
+const categorias = async () => ({
+  Component: (await import('@/features/categorias/CategoriasPage')).CategoriasPage,
+})
 
 export const router = createBrowserRouter([
   { path: '/login', element: <LoginPage /> },
@@ -28,9 +36,9 @@ export const router = createBrowserRouter([
         element: <AppShell />,
         children: [
           { index: true, element: <DashboardPage /> },
-          { path: 'obras', element: <ObrasPage /> },
-          { path: 'clientes', element: <ClientesPage /> },
-          { path: 'trabalhadores', element: <TrabalhadoresPage /> },
+          { path: 'obras', lazy: obras },
+          { path: 'clientes', lazy: clientes },
+          { path: 'trabalhadores', lazy: trabalhadores },
           {
             path: 'lancamentos',
             children: [
@@ -40,7 +48,7 @@ export const router = createBrowserRouter([
               { path: 'mao-de-obra', element: <MaoDeObraPage /> },
             ],
           },
-          { path: 'categorias', element: <CategoriasPage /> },
+          { path: 'categorias', lazy: categorias },
           {
             element: <RequirePerfil perfis={['owner']} />,
             children: [{ path: 'usuarios', element: <UsuariosPage /> }],

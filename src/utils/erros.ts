@@ -14,6 +14,12 @@ const MENSAGENS_AUTH: Record<string, string> = {
   session_not_found: 'Sua sessão expirou. Entre novamente.',
 }
 
+/** Para delete: a RLS filtra em silêncio, então 0 linhas afetadas vira erro explícito. */
+export function exigirLinhas<T>(linhas: T[] | null): T[] {
+  if (!linhas || linhas.length === 0) throw { code: 'SEM_LINHAS' }
+  return linhas
+}
+
 /** Converte erros do Supabase (Auth ou PostgREST/RLS) em mensagem amigável em pt-BR. */
 export function mensagemDeErro(erro: unknown): string {
   if (!erro || typeof erro !== 'object') return 'Algo deu errado. Tente de novo.'
@@ -24,8 +30,14 @@ export function mensagemDeErro(erro: unknown): string {
   if (code === '42501' || /row-level security|permission denied/i.test(message)) {
     return 'Você não tem permissão para esta ação. Fale com o proprietário da conta.'
   }
+  // update/delete bloqueado por RLS não dá erro: volta 0 linhas (PGRST116 no .single())
+  if (code === 'PGRST116' || code === 'SEM_LINHAS') {
+    return 'O registro não foi encontrado ou você não tem permissão para alterá-lo.'
+  }
   if (code === '23505') return 'Já existe um registro com esses dados.'
-  if (code === '23503') return 'Este registro está ligado a outros e não pode ser alterado assim.'
+  if (code === '23503') {
+    return 'Este registro tem lançamentos ou cadastros ligados a ele e não pode ser excluído. Você pode inativá-lo.'
+  }
   if (status === 0 || /failed to fetch|network/i.test(message)) {
     return 'Sem conexão com o servidor. Verifique a internet e tente de novo.'
   }
