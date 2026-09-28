@@ -25,7 +25,7 @@ import { type EstadoPainel, usePainel } from '@/hooks/use-painel'
 import { usePermissao } from '@/hooks/use-permissao'
 import { STATUS_OBRA, comValorAtual } from '@/lib/opcoes'
 import { mensagemDeErro } from '@/utils/erros'
-import { formatarData, formatarPorcento } from '@/utils/format'
+import { formatarData, formatarPorcento, hojeISO, num } from '@/utils/format'
 import { contem, limpar } from '@/utils/texto'
 import { type ObraLista, useExcluirObra, useObras, useSalvarObra } from './api'
 
@@ -101,8 +101,8 @@ export function ObrasPage() {
         <ul className="grid gap-3 lg:grid-cols-2" aria-label="Obras">
           {visiveis.map((o) => {
             const r = porId.get(o.ID_Obra)
-            const contratado = o.Valor_Contratado ?? 0
-            const recebido = r?.total_recebido ?? 0
+            const contratado = num(o.Valor_Contratado)
+            const recebido = num(r?.total_recebido)
             return (
               <li key={o.ID_Obra}>
                 <button
@@ -233,7 +233,7 @@ function FormObra({
       nome: registro?.Nome_Obra ?? '',
       cliente: registro?.ID_Cliente ?? '',
       valor: registro?.Valor_Contratado ?? undefined,
-      inicio: registro?.Data_Inicio ?? new Date().toISOString().slice(0, 10),
+      inicio: registro?.Data_Inicio ?? hojeISO(),
       previsao: registro?.Previsao_Termino ?? '',
       status: registro?.Status ?? 'Em Andamento',
     },

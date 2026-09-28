@@ -4,12 +4,7 @@ import { LoginPage } from '@/features/auth/LoginPage'
 import { RequireAuth, RequirePerfil } from '@/features/auth/RequireAuth'
 import { EsqueciSenhaPage, NovaSenhaPage } from '@/features/auth/ResetPassword'
 import { DashboardPage } from '@/features/dashboard/DashboardPage'
-import {
-  LancamentosPage,
-  MaoDeObraPage,
-  RecebimentosPage,
-  SaidasPage,
-} from '@/features/lancamentos/LancamentosPages'
+import { LancamentosPage } from '@/features/lancamentos/LancamentosPages'
 import { UsuariosPage } from '@/features/usuarios/UsuariosPage'
 import { NaoEncontradaPage } from '@/components/nao-encontrada'
 
@@ -23,6 +18,15 @@ const trabalhadores = async () => ({
 })
 const categorias = async () => ({
   Component: (await import('@/features/categorias/CategoriasPage')).CategoriasPage,
+})
+const saidas = async () => ({
+  Component: (await import('@/features/lancamentos/SaidasPage')).SaidasPage,
+})
+const recebimentos = async () => ({
+  Component: (await import('@/features/lancamentos/RecebimentosPage')).RecebimentosPage,
+})
+const maoDeObra = async () => ({
+  Component: (await import('@/features/lancamentos/MaoDeObraPage')).MaoDeObraPage,
 })
 
 export const router = createBrowserRouter([
@@ -43,9 +47,9 @@ export const router = createBrowserRouter([
             path: 'lancamentos',
             children: [
               { index: true, element: <LancamentosPage /> },
-              { path: 'saidas', element: <SaidasPage /> },
-              { path: 'recebimentos', element: <RecebimentosPage /> },
-              { path: 'mao-de-obra', element: <MaoDeObraPage /> },
+              { path: 'saidas', lazy: saidas },
+              { path: 'recebimentos', lazy: recebimentos },
+              { path: 'mao-de-obra', lazy: maoDeObra },
             ],
           },
           { path: 'categorias', lazy: categorias },

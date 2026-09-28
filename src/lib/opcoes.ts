@@ -34,6 +34,17 @@ export const TIPOS_CUSTO = ['Direto', 'Indireto', 'Investimento'] as const
 
 export const SIM_NAO = ['Sim', 'Não'] as const
 
+export const FORMAS_PAGAMENTO = [
+  'PIX',
+  'Dinheiro',
+  'Cartão de Débito',
+  'Cartão de Crédito',
+  'Transferência',
+  'Boleto',
+] as const
+
+export const TIPOS_PAGAMENTO_MO = ['Diária', 'Empreitada', 'Adiantamento', 'Outro'] as const
+
 /** Garante que um valor já salvo (fora da lista) não suma do select ao editar. */
 export function comValorAtual(opcoes: readonly string[], atual: string | null | undefined): string[] {
   return atual && !opcoes.includes(atual) ? [...opcoes, atual] : [...opcoes]

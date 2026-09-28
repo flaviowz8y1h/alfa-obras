@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useUsuarioLogado } from '@/features/auth/auth-context'
 import { supabase } from '@/lib/supabase'
 import type { ResumoObra } from '@/types/app'
+import { num } from '@/utils/format'
 
 export type Totais = {
   obras: number
@@ -31,14 +32,14 @@ export function somarTotais(linhas: readonly ResumoObra[]): Totais {
   }
   for (const o of linhas) {
     if (o.Status === 'Em Andamento') t.emAndamento++
-    t.contratado += o.valor_contratado ?? 0
-    t.recebido += o.total_recebido ?? 0
-    t.aReceber += o.a_receber ?? 0
-    t.materiais += o.total_saidas ?? 0
-    t.maoDeObra += o.total_mao_de_obra ?? 0
-    t.custo += o.custo_total ?? 0
-    t.saldo += o.saldo_caixa ?? 0
-    t.margemPrevista += o.margem_prevista ?? 0
+    t.contratado += num(o.valor_contratado)
+    t.recebido += num(o.total_recebido)
+    t.aReceber += num(o.a_receber)
+    t.materiais += num(o.total_saidas)
+    t.maoDeObra += num(o.total_mao_de_obra)
+    t.custo += num(o.custo_total)
+    t.saldo += num(o.saldo_caixa)
+    t.margemPrevista += num(o.margem_prevista)
   }
   return t
 }

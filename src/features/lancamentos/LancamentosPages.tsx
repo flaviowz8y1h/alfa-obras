@@ -1,48 +1,61 @@
-import { ChevronRight } from 'lucide-react'
+import { ChevronRight, Plus } from 'lucide-react'
 import { Link } from 'react-router'
 import { LANCAMENTOS } from '@/components/layout/navegacao'
-import { PaginaEmConstrucao } from '@/components/pagina-em-construcao'
 
+const DESCRICAO: Record<string, string> = {
+  '/lancamentos/saidas': 'Material, ferramenta, frete…',
+  '/lancamentos/recebimentos': 'Pagamento do cliente',
+  '/lancamentos/mao-de-obra': 'Diária, empreitada, adiantamento',
+}
+
+const NOVO: Record<string, string> = {
+  '/lancamentos/saidas': 'Nova saída',
+  '/lancamentos/recebimentos': 'Novo recebimento',
+  '/lancamentos/mao-de-obra': 'Novo pagamento',
+}
+
+/** Tela "Lançar" do menu inferior: um toque para abrir o formulário certo. */
 export function LancamentosPage() {
   return (
-    <PaginaEmConstrucao titulo="Lançamentos" descricao="O que você quer lançar?">
-      <ul className="grid gap-3 sm:grid-cols-3">
-        {LANCAMENTOS.map(({ para, rotulo, icone: Icone }) => (
-          <li key={para}>
+    <div className="grid gap-6">
+      <header>
+        <h1 className="text-3xl font-extrabold sm:text-4xl">Lançar</h1>
+        <p className="mt-1 text-muted-foreground">O que você quer registrar agora?</p>
+      </header>
+
+      <ul className="grid gap-3 md:grid-cols-3">
+        {LANCAMENTOS.map(({ para, rotulo, icone: Icone }, i) => (
+          <li
+            key={para}
+            className="grid animate-entrar overflow-hidden rounded-xl border bg-card"
+            style={{ animationDelay: `${i * 50}ms` }}
+          >
             <Link
-              to={para}
-              className="group flex min-h-20 items-center gap-4 rounded-xl border bg-card p-5 transition-colors duration-150 hover:border-ring/50 hover:bg-accent focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
+              to={`${para}?novo=1`}
+              className="group flex min-h-24 items-center gap-4 p-5 transition-colors duration-150 hover:bg-accent/50 focus-visible:bg-accent/60 focus-visible:outline-none"
             >
-              <span className="grid size-11 place-items-center rounded-lg bg-primary text-primary-foreground">
-                <Icone className="size-5" aria-hidden="true" />
+              <span className="grid size-12 shrink-0 place-items-center rounded-xl bg-primary text-primary-foreground">
+                <Icone className="size-6" aria-hidden="true" />
               </span>
-              <span className="flex-1 text-lg font-semibold">{rotulo}</span>
-              <ChevronRight
-                className="size-5 text-muted-foreground transition-transform duration-150 group-hover:translate-x-0.5"
+              <span className="min-w-0 flex-1">
+                <span className="block text-lg font-bold">{NOVO[para]}</span>
+                <span className="block text-sm text-muted-foreground">{DESCRICAO[para]}</span>
+              </span>
+              <Plus
+                className="size-6 text-muted-foreground transition-transform duration-150 group-hover:rotate-90"
                 aria-hidden="true"
               />
+            </Link>
+            <Link
+              to={para}
+              className="flex min-h-12 items-center justify-between border-t px-5 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:bg-muted focus-visible:outline-none"
+            >
+              Ver {rotulo.toLowerCase()} do mês
+              <ChevronRight className="size-4" aria-hidden="true" />
             </Link>
           </li>
         ))}
       </ul>
-    </PaginaEmConstrucao>
-  )
-}
-
-export function SaidasPage() {
-  return (
-    <PaginaEmConstrucao titulo="Saídas" descricao="Compras de material e demais gastos por obra." />
-  )
-}
-
-export function RecebimentosPage() {
-  return (
-    <PaginaEmConstrucao titulo="Recebimentos" descricao="Pagamentos recebidos dos clientes por obra." />
-  )
-}
-
-export function MaoDeObraPage() {
-  return (
-    <PaginaEmConstrucao titulo="Mão de obra" descricao="Diárias e pagamentos aos trabalhadores." />
+    </div>
   )
 }

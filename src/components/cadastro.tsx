@@ -63,16 +63,16 @@ export function BarraFiltros<S extends string>({
   busca,
   aoBuscar,
   placeholder,
-  filtros,
+  filtros = [],
   filtro,
   aoFiltrar,
 }: {
   busca: string
   aoBuscar: (v: string) => void
   placeholder: string
-  filtros: readonly { valor: S; rotulo: string; total?: number }[]
-  filtro: S
-  aoFiltrar: (v: S) => void
+  filtros?: readonly { valor: S; rotulo: string; total?: number }[]
+  filtro?: S
+  aoFiltrar?: (v: S) => void
 }) {
   return (
     <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -101,6 +101,7 @@ export function BarraFiltros<S extends string>({
           </Button>
         )}
       </div>
+      {filtros.length > 0 && (
       <div
         role="radiogroup"
         aria-label="Filtrar por status"
@@ -114,7 +115,7 @@ export function BarraFiltros<S extends string>({
               type="button"
               role="radio"
               aria-checked={ativo}
-              onClick={() => aoFiltrar(f.valor)}
+              onClick={() => aoFiltrar?.(f.valor)}
               className={cn(
                 'flex min-h-10 flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-md px-3 text-sm font-medium whitespace-nowrap transition-colors duration-150 sm:flex-none',
                 'focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none',
@@ -129,6 +130,7 @@ export function BarraFiltros<S extends string>({
           )
         })}
       </div>
+      )}
     </div>
   )
 }
@@ -240,6 +242,7 @@ export function PainelFormulario({
   idFormulario,
   salvando,
   rotuloSalvar = 'Salvar',
+  salvarENovo = false,
   aoExcluir,
   children,
 }: {
@@ -250,6 +253,11 @@ export function PainelFormulario({
   idFormulario: string
   salvando: boolean
   rotuloSalvar?: string
+  /**
+   * Mostra "Salvar e lançar outro" (submit com name="continuar").
+   * O formulário detecta pelo `event.nativeEvent.submitter`.
+   */
+  salvarENovo?: boolean
   aoExcluir?: () => void
   children: React.ReactNode
 }) {
@@ -268,7 +276,19 @@ export function PainelFormulario({
           {descricao && <SheetDescription className="mt-1">{descricao}</SheetDescription>}
         </div>
         <div className="flex-1 overflow-y-auto px-5 py-5">{children}</div>
-        <div className="pb-seguro flex items-center gap-2 border-t bg-card px-5 py-4">
+        <div className="pb-seguro flex flex-wrap items-center gap-2 border-t bg-card px-5 py-4">
+          {salvarENovo && (
+            <Button
+              type="submit"
+              form={idFormulario}
+              name="continuar"
+              variant="secondary"
+              disabled={salvando}
+              className="order-last w-full sm:order-none sm:w-auto"
+            >
+              Salvar e lançar outro
+            </Button>
+          )}
           {aoExcluir && (
             <Button
               type="button"

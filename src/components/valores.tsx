@@ -1,6 +1,6 @@
 import { Minus, TrendingDown, TrendingUp } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { formatarMoeda, formatarPorcento } from '@/utils/format'
+import { formatarMoeda, formatarPorcento, num } from '@/utils/format'
 
 /** Valor em BRL com números tabulares. */
 export function Moeda({ valor, className }: { valor: number | null | undefined; className?: string }) {
@@ -17,7 +17,7 @@ export function Saldo({
   className?: string
   comIcone?: boolean
 }) {
-  const v = valor ?? 0
+  const v = num(valor)
   const Icone = v > 0 ? TrendingUp : v < 0 ? TrendingDown : Minus
   const rotulo = v > 0 ? 'positivo' : v < 0 ? 'negativo' : 'zerado'
   return (
