@@ -1,5 +1,8 @@
 // Gestão de usuários da empresa — só o owner (ativo e com MFA/aal2) pode chamar.
-// Usa a service_role, que existe apenas aqui no servidor (variável automática do Supabase).
+// Duas conexões:
+//  - db: com o token do próprio owner -> tabelas passam pela RLS (o service_role não tem
+//    GRANT nas tabelas deste projeto, de propósito).
+//  - admin: service_role só para a API de Auth (criar login, bloquear, trocar senha).
 import { createClient } from 'npm:@supabase/supabase-js@2'
 
 const CORS = {
@@ -64,6 +67,10 @@ Deno.serve(async (req) => {
 
     /* ---------- Quem está chamando? ---------- */
     const token = req.headers.get('Authorization')?.replace(/^Bearer\s+/i, '') ?? ''
+    const db = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_ANON_KEY')!, {
+      auth: { persistSession: false, autoRefreshToken: false },
+      global: { headers: { Authorization: `Bearer ${token}` } },
+    })
     const { data: auth, error: erroAuth } = await admin.auth.getUser(token)
     if (erroAuth || !auth.user) throw new ErroHttp(401, 'Sessão inválida. Entre novamente.')
 
@@ -72,7 +79,7 @@ Deno.serve(async (req) => {
       throw new ErroHttp(403, 'Confirme a verificação em duas etapas para gerenciar usuários.')
     }
 
-    const { data: chamador } = await admin
+    const { data: chamador } = await db
       .from('dUsuarios')
       .select('ID_Usuario, ID_Empresa, Perfil, Status')
       .eq('ID_Usuario', auth.user.id)
@@ -86,7 +93,7 @@ Deno.serve(async (req) => {
     async function alvoGerenciavel(id: unknown) {
       if (typeof id !== 'string' || !id) throw new ErroHttp(400, 'Usuário não informado.')
       if (id === chamador!.ID_Usuario) throw new ErroHttp(400, 'Você não pode alterar a própria conta por aqui.')
-      const { data } = await admin.from('dUsuarios').select('*').eq('ID_Usuario', id).maybeSingle()
+      const { data } = await db.from('dUsuarios').select('*').eq('ID_Usuario', id).maybeSingle()
       if (!data || data.ID_Empresa !== idEmpresa) throw new ErroHttp(404, 'Usuário não encontrado.')
       if (data.Perfil === 'owner') throw new ErroHttp(403, 'O proprietário não pode ser alterado por aqui.')
       return data
@@ -97,7 +104,7 @@ Deno.serve(async (req) => {
     switch (corpo.acao) {
       /* ---------- Listar ---------- */
       case 'listar': {
-        const { data: linhas, error } = await admin
+        const { data: linhas, error } = await db
           .from('dUsuarios')
           .select('ID_Usuario, Nome, Perfil, Status, Criado_Em')
           .eq('ID_Empresa', idEmpresa)
@@ -142,7 +149,7 @@ Deno.serve(async (req) => {
           throw new ErroHttp(400, jaExiste ? 'Já existe um usuário com este e-mail.' : 'Não foi possível criar o login.')
         }
 
-        const { error: erroPerfil } = await admin.from('dUsuarios').insert({
+        const { error: erroPerfil } = await db.from('dUsuarios').insert({
           ID_Usuario: criado.user.id,
           ID_Empresa: idEmpresa,
           Nome: nome,
@@ -169,11 +176,14 @@ Deno.serve(async (req) => {
         }
         if (Object.keys(mudancas).length === 0) throw new ErroHttp(400, 'Nada para alterar.')
 
-        const { error } = await admin
+        const { data: alterados, error } = await db
           .from('dUsuarios')
           .update({ ...mudancas, Atualizado_Em: new Date().toISOString() })
           .eq('ID_Usuario', alvo.ID_Usuario)
+          .select('ID_Usuario')
         if (error) throw error
+        // com RLS, update bloqueado não dá erro: volta 0 linhas
+        if (!alterados?.length) throw new ErroHttp(403, 'Sem permissão para alterar este usuário.')
 
         // Inativo também não consegue mais entrar (e as sessões abertas param de renovar).
         if (mudancas.Status) {
