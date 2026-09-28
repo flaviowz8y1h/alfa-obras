@@ -14,6 +14,8 @@
   --font-heading: "Archivo Variable", "IBM Plex Sans", sans-serif;
   --font-mono: "IBM Plex Mono", ui-monospace, monospace;
 
+  --color-serie-entrada: var(--serie-entrada);
+  --color-serie-saida: var(--serie-saida);
   --color-positivo: var(--positivo);
   --color-negativo: var(--negativo);
   --color-marca: var(--marca);
@@ -94,6 +96,9 @@
   --destructive: #b91c1c;
   --positivo: #15803d;
   --negativo: #b91c1c;
+  /* séries de gráfico (validadas p/ daltonismo e contraste sobre o card) */
+  --serie-entrada: #2a78d6;
+  --serie-saida: #eb6834;
   --border: #d6dde8;
   --input: #c3ccdb;
   --ring: #1d4ed8;
@@ -135,6 +140,8 @@
   --destructive: #f87171;
   --positivo: #4ade80;
   --negativo: #f87171;
+  --serie-entrada: #3987e5;
+  --serie-saida: #d95926;
   --border: #262d3b;
   --input: #343c4d;
   --ring: #6b8fe8;

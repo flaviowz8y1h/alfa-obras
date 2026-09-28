@@ -10,6 +10,9 @@ import { NaoEncontradaPage } from '@/components/nao-encontrada'
 
 // Cadastros carregam sob demanda: o primeiro acesso (login + dashboard) fica mais leve.
 const obras = async () => ({ Component: (await import('@/features/obras/ObrasPage')).ObrasPage })
+const obraDetalhe = async () => ({
+  Component: (await import('@/features/obras/ObraDetalhePage')).ObraDetalhePage,
+})
 const clientes = async () => ({
   Component: (await import('@/features/clientes/ClientesPage')).ClientesPage,
 })
@@ -32,8 +35,7 @@ const maoDeObra = async () => ({
 export const router = createBrowserRouter([
   { path: '/login', element: <LoginPage /> },
   { path: '/esqueci-senha', element: <EsqueciSenhaPage /> },
-  { path: '/nova-senha', element: <NovaSenhaPage /> },
-  {
+  { path: '/nova-senha', element: <NovaSenhaPage /> },  {
     element: <RequireAuth />,
     children: [
       {
@@ -41,6 +43,7 @@ export const router = createBrowserRouter([
         children: [
           { index: true, element: <DashboardPage /> },
           { path: 'obras', lazy: obras },
+          { path: 'obras/:id', lazy: obraDetalhe },
           { path: 'clientes', lazy: clientes },
           { path: 'trabalhadores', lazy: trabalhadores },
           {

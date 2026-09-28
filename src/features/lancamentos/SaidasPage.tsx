@@ -31,6 +31,7 @@ import {
   useFiltrosLancamento,
   useNovoPelaUrl,
   useOpcoesObra,
+  usePreencherUltimaObra,
 } from './hooks'
 
 export function SaidasPage() {
@@ -172,6 +173,7 @@ function FormSaida({
     handleSubmit,
     reset,
     getValues,
+    setValue,
     setFocus,
     formState: { errors },
   } = useForm<Dados>({
@@ -186,6 +188,9 @@ function FormSaida({
       descricao: registro?.Descricao ?? '',
       nota: registro?.Numero_Nota_Fiscal ?? '',
     },
+  })
+  usePreencherUltimaObra(obras.opcoes, !registro, (id) => {
+    if (!getValues('obra')) setValue('obra', id)
   })
 
   async function enviar(d: Dados, evento?: React.BaseSyntheticEvent) {

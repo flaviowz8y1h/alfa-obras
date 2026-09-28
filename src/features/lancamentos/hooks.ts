@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useEffectEvent, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router'
 import { useObras } from '@/features/obras/api'
 import { type Mes, mesAtual } from '@/utils/format'
@@ -43,23 +43,46 @@ export function salvarUltimaObra(id: string) {
   }
 }
 
+/**
+ * Em formulário novo, preenche a última obra usada assim que a lista de obras
+ * chega (o formulário pode abrir antes, vindo do atalho do detalhe da obra).
+ */
+export function usePreencherUltimaObra(
+  opcoes: readonly { valor: string }[],
+  ativo: boolean,
+  preencher: (id: string) => void,
+) {
+  const aoCarregar = useEffectEvent(preencher)
+  useEffect(() => {
+    if (!ativo) return
+    const ultima = lerUltimaObra()
+    if (ultima && opcoes.some((o) => o.valor === ultima)) aoCarregar(ultima)
+  }, [ativo, opcoes])
+}
+
 /* ---------------- ?novo=1 abre o formulário direto ---------------- */
 
-/** Atalho da tela "Lançar": /lancamentos/saidas?novo=1 já abre o formulário. */
+/**
+ * Atalho: /lancamentos/saidas?novo=1 já abre o formulário.
+ * Com &obra=ID (vindo do detalhe da obra) a obra vem pré-selecionada.
+ */
 export function useNovoPelaUrl(abrir: () => void) {
   const [params, setParams] = useSearchParams()
   const pedirNovo = params.get('novo') === '1'
+  const obra = params.get('obra')
   useEffect(() => {
     if (!pedirNovo) return
+    if (obra) salvarUltimaObra(obra)
     abrir()
     setParams(
       (p) => {
         p.delete('novo')
+        p.delete('obra')
         return p
       },
       { replace: true },
     )
-  }, [pedirNovo, abrir, setParams])
+  }, [pedirNovo, obra, abrir, setParams])
 }
 
 /* ---------------- Filtros: mês + obra ---------------- */

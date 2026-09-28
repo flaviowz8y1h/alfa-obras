@@ -36,6 +36,7 @@ import {
   useFiltrosLancamento,
   useNovoPelaUrl,
   useOpcoesObra,
+  usePreencherUltimaObra,
 } from './hooks'
 
 export function RecebimentosPage() {
@@ -160,6 +161,8 @@ function FormRecebimento({
     register,
     control,
     handleSubmit,
+    getValues,
+    setValue,
     formState: { errors },
   } = useForm<Dados>({
     resolver: zodResolver(esquema),
@@ -170,6 +173,9 @@ function FormRecebimento({
       forma: registro?.Forma_Pagamento ?? 'PIX',
       observacao: registro?.Observacao ?? '',
     },
+  })
+  usePreencherUltimaObra(obras.opcoes, !registro, (id) => {
+    if (!getValues('obra')) setValue('obra', id)
   })
 
   const obraEscolhida = useWatch({ control, name: 'obra' })

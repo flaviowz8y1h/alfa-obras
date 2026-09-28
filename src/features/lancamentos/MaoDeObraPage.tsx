@@ -50,6 +50,7 @@ import {
   useFiltrosLancamento,
   useNovoPelaUrl,
   useOpcoesObra,
+  usePreencherUltimaObra,
 } from './hooks'
 
 const ehDiaria = (tipo: string | null | undefined) => tipo === 'Diária'
@@ -244,6 +245,9 @@ function FormPagamento({
       forma: registro?.Forma_Pagamento ?? 'PIX',
       observacao: registro?.Observacao ?? '',
     },
+  })
+  usePreencherUltimaObra(obras.opcoes, !registro, (id) => {
+    if (!getValues('obra')) setValue('obra', id)
   })
 
   const [tipo, dias, diaria, idTrabalhador] = useWatch({
