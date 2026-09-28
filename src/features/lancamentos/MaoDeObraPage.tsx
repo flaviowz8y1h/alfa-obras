@@ -21,13 +21,18 @@ import { type EstadoPainel, usePainel } from '@/hooks/use-painel'
 import { usePermissao } from '@/hooks/use-permissao'
 import { FORMAS_PAGAMENTO, TIPOS_PAGAMENTO_MO, comValorAtual } from '@/lib/opcoes'
 import { mensagemDeErro } from '@/utils/erros'
+import { cn } from '@/lib/utils'
 import {
-  diasUteis,
+  MAX_DIAS_PERIODO,
+  diasDoPeriodo,
+  diasTrabalhados,
+  ehDomingo,
   formatarData,
   formatarMoeda,
   formatarNumero,
   hojeISO,
   num,
+  rotuloDia,
   semanaAtual,
 } from '@/utils/format'
 import { contem, limpar } from '@/utils/texto'
@@ -228,7 +233,11 @@ function FormPagamento({
       tipo: registro?.Tipo_Pagamento ?? 'Diária',
       inicio: registro?.Periodo_Inicio ?? semana.inicio,
       fim: registro?.Periodo_Fim ?? semana.fim,
-      dias: registro ? (registro.Quantidade_Dias != null ? num(registro.Quantidade_Dias) : null) : diasUteis(semana.inicio, semana.fim),
+      dias: registro
+        ? registro.Quantidade_Dias != null
+          ? num(registro.Quantidade_Dias)
+          : null
+        : diasTrabalhados(semana.inicio, semana.fim),
       diaria: registro?.Valor_Diaria_Aplicado != null ? num(registro.Valor_Diaria_Aplicado) : null,
       valor: registro?.Valor_Pago != null ? num(registro.Valor_Pago) : null,
       data: registro?.Data_Pagamento ?? hojeISO(),
@@ -245,9 +254,31 @@ function FormPagamento({
   const totalDiarias = centavos((dias ?? 0) * (diaria ?? 0))
   const trabalhador = lista.find((t) => t.ID_Trabalhador === idTrabalhador)
 
+  // Dias marcados no período. Não vai para o banco (lá fica só a quantidade);
+  // serve para montar a contagem tocando dia a dia.
+  const padraoDoPeriodo = (inicio: string, fim: string) =>
+    new Set(diasDoPeriodo(inicio, fim).filter((d) => !ehDomingo(d)))
+  const [marcados, setMarcados] = useState<Set<string>>(() =>
+    padraoDoPeriodo(registro?.Periodo_Inicio ?? semana.inicio, registro?.Periodo_Fim ?? semana.fim),
+  )
+  const [inicio, fim] = useWatch({ control, name: ['inicio', 'fim'] })
+  const diasPeriodo = diasDoPeriodo(inicio, fim)
+
+  function aplicarMarcados(novo: Set<string>) {
+    setMarcados(novo)
+    setValue('dias', novo.size, { shouldValidate: true })
+  }
+
   function recalcularDias() {
-    const { inicio, fim } = getValues()
-    if (inicio && fim) setValue('dias', diasUteis(inicio, fim), { shouldValidate: true })
+    const v = getValues()
+    if (v.inicio && v.fim) aplicarMarcados(padraoDoPeriodo(v.inicio, v.fim))
+  }
+
+  function alternarDia(dia: string) {
+    const novo = new Set(marcados)
+    if (novo.has(dia)) novo.delete(dia)
+    else novo.add(dia)
+    aplicarMarcados(novo)
   }
 
   async function enviar(d: Dados, evento?: React.BaseSyntheticEvent) {
@@ -274,7 +305,10 @@ function FormPagamento({
       toast.success(registro ? 'Pagamento atualizado.' : 'Pagamento lançado.')
       if (continuar) {
         // mesma obra e mesma semana; troca só o trabalhador
-        reset({ ...getValues(), trabalhador: '', diaria: null, valor: null, observacao: '' })
+        const atual = getValues()
+        const padrao = padraoDoPeriodo(atual.inicio, atual.fim)
+        reset({ ...atual, trabalhador: '', diaria: null, valor: null, observacao: '', dias: padrao.size })
+        setMarcados(padrao)
         setFocus('trabalhador')
       } else {
         aoFechar()
@@ -356,6 +390,53 @@ function FormPagamento({
                 {(a11y) => <Input {...a11y} {...register('fim', { onChange: recalcularDias })} type="date" />}
               </Campo>
             </div>
+
+            {diasPeriodo.length > 0 ? (
+              <div className="grid gap-2">
+                <p className="text-sm font-semibold" id="rotulo-dias-trabalhados">
+                  Dias trabalhados
+                  <span className="ml-2 font-normal text-muted-foreground">toque para marcar ou desmarcar</span>
+                </p>
+                <div
+                  role="group"
+                  aria-labelledby="rotulo-dias-trabalhados"
+                  className="grid grid-cols-[repeat(auto-fill,minmax(3.25rem,1fr))] gap-2"
+                >
+                  {diasPeriodo.map((dia) => {
+                    const ativo = marcados.has(dia)
+                    const { semana: nomeDia, numero } = rotuloDia(dia)
+                    return (
+                      <button
+                        key={dia}
+                        type="button"
+                        aria-pressed={ativo}
+                        aria-label={`${formatarData(dia, "EEEE, d 'de' MMMM")}: ${ativo ? 'trabalhou' : 'não trabalhou'}`}
+                        onClick={() => alternarDia(dia)}
+                        className={cn(
+                          'flex min-h-14 cursor-pointer flex-col items-center justify-center rounded-lg border text-xs transition-colors duration-150',
+                          'focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none',
+                          ativo
+                            ? 'border-primary bg-primary text-primary-foreground'
+                            : 'border-dashed bg-card text-muted-foreground line-through decoration-1 hover:border-ring/50',
+                        )}
+                      >
+                        <span className="font-medium">{nomeDia}</span>
+                        <span className="numero text-base font-bold no-underline">{numero}</span>
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+            ) : (
+              inicio &&
+              fim &&
+              fim >= inicio && (
+                <p className="text-sm text-muted-foreground">
+                  Período com mais de {MAX_DIAS_PERIODO} dias: informe a quantidade de dias direto.
+                </p>
+              )
+            )}
+
             <div className="grid grid-cols-[7rem_1fr] gap-3">
               <Campo rotulo="Dias" erro={errors.dias?.message}>
                 {(a11y) => (
@@ -383,7 +464,7 @@ function FormPagamento({
               </Campo>
             </div>
             <p className="-mt-2 text-sm text-muted-foreground">
-              Dias úteis (seg–sex) calculados pelo período. Ajuste se trabalhou sábado ou faltou; aceita meio dia (0,5).
+              Segunda a sábado já vêm marcados. Para meio dia, digite direto no campo (ex.: 4,5).
             </p>
             <div className="flex items-baseline justify-between rounded-lg bg-primary px-4 py-3 text-primary-foreground">
               <span className="text-sm font-medium">Total a pagar</span>

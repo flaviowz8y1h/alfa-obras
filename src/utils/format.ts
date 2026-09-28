@@ -3,7 +3,7 @@ import {
   eachDayOfInterval,
   endOfMonth,
   format,
-  isWeekend,
+  getDay,
   isValid,
   parseISO,
   startOfMonth,
@@ -87,12 +87,32 @@ export function nomeDoMes(mes: Mes): string {
 
 /* ---------- Mão de obra ---------- */
 
-/** Dias úteis (seg–sex) entre duas datas, inclusive. */
-export function diasUteis(inicio: string, fim: string): number {
+/** Limite para mostrar os dias um a um (acima disso, só a contagem). */
+export const MAX_DIAS_PERIODO = 31
+
+/** Todas as datas do período, inclusive ('yyyy-MM-dd'). Vazio se inválido ou longo demais. */
+export function diasDoPeriodo(inicio: string, fim: string): string[] {
   const a = parseISO(inicio)
   const b = parseISO(fim)
-  if (!isValid(a) || !isValid(b) || b < a) return 0
-  return eachDayOfInterval({ start: a, end: b }).filter((d) => !isWeekend(d)).length
+  if (!isValid(a) || !isValid(b) || b < a) return []
+  const dias = eachDayOfInterval({ start: a, end: b })
+  return dias.length > MAX_DIAS_PERIODO ? [] : dias.map(paraISO)
+}
+
+/** Por padrão conta de segunda a sábado — domingo fica de fora. */
+export function ehDomingo(dia: string): boolean {
+  return getDay(parseISO(dia)) === 0
+}
+
+export function diasTrabalhados(inicio: string, fim: string): number {
+  return diasDoPeriodo(inicio, fim).filter((d) => !ehDomingo(d)).length
+}
+
+const DIAS_SEMANA = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'] as const
+
+export function rotuloDia(dia: string): { semana: string; numero: string } {
+  const d = parseISO(dia)
+  return { semana: DIAS_SEMANA[getDay(d)] ?? '', numero: format(d, 'dd') }
 }
 
 /** Segunda e sexta da semana atual — período padrão de uma diária semanal. */
