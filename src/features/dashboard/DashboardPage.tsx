@@ -202,7 +202,12 @@ function TabelaObras({ linhas, totais }: { linhas: readonly ResumoObra[]; totais
           <li key={o.ID_Obra} className="grid gap-3 rounded-xl border bg-card p-4">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
-                <p className="truncate text-base font-semibold">{o.Nome_Obra ?? 'Obra sem nome'}</p>
+                <Link
+                  to={`/obras/${o.ID_Obra}`}
+                  className="block truncate rounded-sm text-base font-semibold underline-offset-4 hover:underline focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
+                >
+                  {o.Nome_Obra ?? 'Obra sem nome'}
+                </Link>
                 <p className="truncate text-sm text-muted-foreground">{o.Nome_Cliente ?? '—'}</p>
               </div>
               <StatusObra status={o.Status} />
@@ -240,7 +245,12 @@ function TabelaObras({ linhas, totais }: { linhas: readonly ResumoObra[]; totais
             {linhas.map((o) => (
               <TableRow key={o.ID_Obra}>
                 <TableCell className="max-w-64 py-3 pl-5">
-                  <p className="truncate font-semibold">{o.Nome_Obra ?? 'Obra sem nome'}</p>
+                  <Link
+                    to={`/obras/${o.ID_Obra}`}
+                    className="block truncate rounded-sm font-semibold underline-offset-4 hover:underline focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
+                  >
+                    {o.Nome_Obra ?? 'Obra sem nome'}
+                  </Link>
                   <p className="truncate text-xs text-muted-foreground">
                     {o.Nome_Cliente ?? '—'}
                     {o.Previsao_Termino && ` · prev. ${formatarData(o.Previsao_Termino)}`}
