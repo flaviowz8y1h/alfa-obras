@@ -1,7 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Check, ChevronRight, Copy, HardHat } from 'lucide-react'
 import { useMemo, useState } from 'react'
-import { Controller, useForm } from 'react-hook-form'
+import { Controller, useForm, useWatch } from 'react-hook-form'
 import { toast } from 'sonner'
 import { z } from 'zod'
 import {
@@ -21,7 +21,13 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { type EstadoPainel, usePainel } from '@/hooks/use-painel'
 import { usePermissao } from '@/hooks/use-permissao'
-import { FUNCOES_SUGERIDAS, STATUS_CADASTRO, VINCULOS, comValorAtual } from '@/lib/opcoes'
+import {
+  FUNCOES_SUGERIDAS,
+  STATUS_CADASTRO,
+  VINCULOS,
+  comValorAtual,
+  valorReferencia,
+} from '@/lib/opcoes'
 import type { Trabalhador } from '@/types/app'
 import { mensagemDeErro } from '@/utils/erros'
 import { contem, limpar } from '@/utils/texto'
@@ -107,13 +113,28 @@ export function TrabalhadoresPage() {
                     {t.Nome_Trabalhador ?? 'Sem nome'}
                   </span>
                   <span className="block truncate text-sm text-muted-foreground">
-                    {[t.Funcao, t.Tipo_Vinc_Contrato].filter(Boolean).join(' · ') || '—'}
+                    {/* no celular o bloco da direita some, então o vínculo fica aqui */}
+                    <span className="sm:hidden">
+                      {[t.Funcao, t.Tipo_Vinc_Contrato].filter(Boolean).join(' · ') || '—'}
+                    </span>
+                    <span className="hidden sm:inline">{t.Funcao ?? '—'}</span>
                   </span>
                 </span>
-                <span className="hidden text-right sm:block">
-                  <span className="block text-xs text-muted-foreground">Diária</span>
-                  <Moeda valor={t.Valor_Diaria_Padrao} className="font-semibold" />
-                </span>
+                {(t.Valor_Diaria_Padrao != null || t.Tipo_Vinc_Contrato) && (
+                  <span className="hidden text-right sm:block">
+                    <span className="block text-xs text-muted-foreground">
+                      {t.Tipo_Vinc_Contrato ?? 'Valor de referência'}
+                    </span>
+                    {t.Valor_Diaria_Padrao != null && (
+                      <>
+                        <Moeda valor={t.Valor_Diaria_Padrao} className="font-semibold" />
+                        <span className="text-xs text-muted-foreground">
+                          {valorReferencia(t.Tipo_Vinc_Contrato).sufixo}
+                        </span>
+                      </>
+                    )}
+                  </span>
+                )}
                 <SeloStatus status={t.Status} />
                 {permissao.editar && (
                   <ChevronRight
@@ -228,6 +249,7 @@ function FormTrabalhador({
       status: registro?.Status ?? 'Ativo',
     },
   })
+  const referencia = valorReferencia(useWatch({ control, name: 'vinculo' }))
 
   async function enviar(d: Dados) {
     try {
@@ -278,9 +300,13 @@ function FormTrabalhador({
           </Campo>
         </div>
         <Campo
-          rotulo="Diária padrão"
+          rotulo={referencia.rotuloCampo}
           erro={errors.diaria?.message}
-          ajuda="Sugerida ao lançar pagamento; pode ser trocada em cada lançamento."
+          ajuda={
+            referencia.ehDiaria
+              ? 'Sugerida ao lançar diárias; pode ser trocada em cada pagamento.'
+              : 'Opcional. Valor combinado com o profissional, sugerido ao lançar o pagamento.'
+          }
         >
           {(a11y) => (
             <Controller

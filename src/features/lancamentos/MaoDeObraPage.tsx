@@ -19,7 +19,7 @@ import { Input } from '@/components/ui/input'
 import { useTrabalhadores } from '@/features/trabalhadores/api'
 import { type EstadoPainel, usePainel } from '@/hooks/use-painel'
 import { usePermissao } from '@/hooks/use-permissao'
-import { FORMAS_PAGAMENTO, TIPOS_PAGAMENTO_MO, comValorAtual } from '@/lib/opcoes'
+import { FORMAS_PAGAMENTO, TIPOS_PAGAMENTO_MO, comValorAtual, valorReferencia } from '@/lib/opcoes'
 import { mensagemDeErro } from '@/utils/erros'
 import { cn } from '@/lib/utils'
 import {
@@ -336,9 +336,15 @@ function FormPagamento({
               {...a11y}
               {...register('trabalhador', {
                 onChange: (e: React.ChangeEvent<HTMLSelectElement>) => {
-                  // puxa a diária padrão do trabalhador escolhido
+                  // Sugere tipo e valor pelo vínculo: diarista → diária; autônomo/PJ/CLT → valor
+                  // combinado; empreiteiro → empreitada. Ao editar, não mexe no que foi salvo.
                   const t = lista.find((x) => x.ID_Trabalhador === e.target.value)
-                  if (t?.Valor_Diaria_Padrao != null) setValue('diaria', num(t.Valor_Diaria_Padrao))
+                  if (!t || registro) return
+                  const ref = valorReferencia(t.Tipo_Vinc_Contrato)
+                  const padrao = t.Valor_Diaria_Padrao != null ? num(t.Valor_Diaria_Padrao) : null
+                  setValue('tipo', ref.tipoPagamento)
+                  if (ref.ehDiaria) setValue('diaria', padrao)
+                  else setValue('valor', padrao)
                 },
               })}
               autoFocus

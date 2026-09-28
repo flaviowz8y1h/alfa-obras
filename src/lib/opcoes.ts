@@ -8,7 +8,29 @@ export type StatusCadastro = (typeof STATUS_CADASTRO)[number]
 
 export const STATUS_OBRA = ['Em Andamento', 'Pausada', 'Concluída', 'Cancelada'] as const
 
-export const VINCULOS = ['Diarista', 'Autônomo', 'Empreiteiro', 'CLT'] as const
+export const VINCULOS = ['Diarista', 'Autônomo', 'PJ', 'Empreiteiro', 'CLT'] as const
+
+/**
+ * O cadastro guarda um único "valor padrão" (coluna Valor_Diaria_Padrao), mas o
+ * significado depende do vínculo: só para diarista ele é uma diária.
+ */
+export function valorReferencia(vinculo: string | null | undefined): {
+  rotuloCampo: string
+  sufixo: string
+  ehDiaria: boolean
+  tipoPagamento: string
+} {
+  switch (vinculo) {
+    case 'Diarista':
+      return { rotuloCampo: 'Diária padrão', sufixo: '/dia', ehDiaria: true, tipoPagamento: 'Diária' }
+    case 'CLT':
+      return { rotuloCampo: 'Salário de referência', sufixo: '/mês', ehDiaria: false, tipoPagamento: 'Outro' }
+    case 'Empreiteiro':
+      return { rotuloCampo: 'Valor de referência', sufixo: '', ehDiaria: false, tipoPagamento: 'Empreitada' }
+    default:
+      return { rotuloCampo: 'Valor de referência', sufixo: '', ehDiaria: false, tipoPagamento: 'Outro' }
+  }
+}
 
 export const FUNCOES_SUGERIDAS = [
   'Mestre de Obras',
