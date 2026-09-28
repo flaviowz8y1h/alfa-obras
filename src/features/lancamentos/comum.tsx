@@ -1,4 +1,4 @@
-import { ChevronLeft, ChevronRight, ReceiptText } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Paperclip, ReceiptText } from 'lucide-react'
 import { useMemo } from 'react'
 import { ListaVazia } from '@/components/cadastro'
 import { SelectNativo } from '@/components/campos'
@@ -108,6 +108,8 @@ export type ItemLancamento<T> = {
   titulo: string
   detalhe: string
   valor: number | string | null
+  /** Tem comprovante anexado. */
+  anexo?: boolean
   registro: T
 }
 
@@ -157,7 +159,12 @@ export function ListaLancamentos<T>({
                     className="flex min-h-16 w-full cursor-pointer items-center gap-3 px-4 py-3 text-left transition-colors duration-150 hover:bg-accent/40 focus-visible:bg-accent/60 focus-visible:outline-none disabled:cursor-default"
                   >
                     <span className="min-w-0 flex-1">
-                      <span className="block truncate font-semibold">{i.titulo}</span>
+                      <span className="flex items-center gap-1.5">
+                        <span className="truncate font-semibold">{i.titulo}</span>
+                        {i.anexo && (
+                          <Paperclip className="size-3.5 shrink-0 text-muted-foreground" aria-label="Com comprovante" />
+                        )}
+                      </span>
                       <span className="block truncate text-sm text-muted-foreground">{i.detalhe}</span>
                     </span>
                     <Moeda

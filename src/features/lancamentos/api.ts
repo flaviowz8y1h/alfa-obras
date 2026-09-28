@@ -1,5 +1,6 @@
 import { type QueryClient, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useUsuarioLogado } from '@/features/auth/auth-context'
+import { apagarComprovante } from '@/lib/comprovantes'
 import { supabase } from '@/lib/supabase'
 import { type Alteracao, paraInsert } from '@/types/app'
 import { exigirLinhas } from '@/utils/erros'
@@ -55,6 +56,7 @@ export type DadosSaida = Required<
     | 'Fornecedor_Local'
     | 'Descricao'
     | 'Numero_Nota_Fiscal'
+    | 'Comprovante_URL'
   >
 >
 
@@ -100,10 +102,11 @@ export function useSalvarSaida() {
 export function useExcluirSaida() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: async (id: string) => {
+    mutationFn: async ({ id, comprovante }: { id: string; comprovante: string | null }) => {
       const { data, error } = await supabase.from('fSaidasObras').delete().eq('ID_Saida', id).select('ID_Saida')
       if (error) throw error
       exigirLinhas(data)
+      await apagarComprovante(comprovante)
     },
     onSuccess: () => {
       invalidarTotais(qc, 'fSaidasObras')

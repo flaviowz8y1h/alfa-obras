@@ -25,6 +25,8 @@ export function mensagemDeErro(erro: unknown): string {
   if (!erro || typeof erro !== 'object') return 'Algo deu errado. Tente de novo.'
   const { code, message = '', status } = erro as ErroComCodigo
 
+  // mensagens das Edge Functions já chegam prontas para o usuário
+  if (code === 'FUNCAO' && message) return message
   if (code && MENSAGENS_AUTH[code]) return MENSAGENS_AUTH[code]
   // 42501 = violação de RLS / permissão negada no Postgres
   if (code === '42501' || /row-level security|permission denied/i.test(message)) {

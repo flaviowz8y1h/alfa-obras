@@ -5,7 +5,6 @@ import { RequireAuth, RequirePerfil } from '@/features/auth/RequireAuth'
 import { EsqueciSenhaPage, NovaSenhaPage } from '@/features/auth/ResetPassword'
 import { DashboardPage } from '@/features/dashboard/DashboardPage'
 import { LancamentosPage } from '@/features/lancamentos/LancamentosPages'
-import { UsuariosPage } from '@/features/usuarios/UsuariosPage'
 import { NaoEncontradaPage } from '@/components/nao-encontrada'
 
 // Cadastros carregam sob demanda: o primeiro acesso (login + dashboard) fica mais leve.
@@ -58,7 +57,14 @@ export const router = createBrowserRouter([
           { path: 'categorias', lazy: categorias },
           {
             element: <RequirePerfil perfis={['owner']} />,
-            children: [{ path: 'usuarios', element: <UsuariosPage /> }],
+            children: [
+              {
+                path: 'usuarios',
+                lazy: async () => ({
+                  Component: (await import('@/features/usuarios/UsuariosPage')).UsuariosPage,
+                }),
+              },
+            ],
           },
           { path: '*', element: <NaoEncontradaPage /> },
         ],

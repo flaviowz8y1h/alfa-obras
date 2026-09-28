@@ -12,7 +12,10 @@ import {
   PainelFormulario,
 } from '@/components/cadastro'
 import { Campo } from '@/components/campo'
+import { CampoComprovante } from '@/components/campo-comprovante'
 import { CampoMoeda, InputSugestoes, SelectNativo } from '@/components/campos'
+import { useUsuarioLogado } from '@/features/auth/auth-context'
+import { apagarComprovante, comprovanteInicial, enviarComprovante } from '@/lib/comprovantes'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useCategorias } from '@/features/categorias/api'
@@ -89,6 +92,7 @@ export function SaidasPage() {
             titulo: s.Descricao || s.Nome_Categoria || 'Saída',
             detalhe: [s.Nome_Obra, s.Fornecedor_Local, s.Forma_Pagamento].filter(Boolean).join(' · '),
             valor: s.Valor,
+            anexo: !!s.Comprovante_URL,
             registro: s,
           }))}
           vazio={{
@@ -119,7 +123,7 @@ export function SaidasPage() {
         aoConfirmar={async () => {
           if (!p.excluindo) return false
           try {
-            await excluir.mutateAsync(p.excluindo.ID_Saida)
+            await excluir.mutateAsync({ id: p.excluindo.ID_Saida, comprovante: p.excluindo.Comprovante_URL })
             toast.success('Saída excluída.')
             p.fechar()
             return true
@@ -193,8 +197,27 @@ function FormSaida({
     if (!getValues('obra')) setValue('obra', id)
   })
 
+  const { idEmpresa } = useUsuarioLogado()
+  const [comprovante, setComprovante] = useState(() => comprovanteInicial(registro?.Comprovante_URL ?? null))
+  const [enviandoArquivo, setEnviandoArquivo] = useState(false)
+
   async function enviar(d: Dados, evento?: React.BaseSyntheticEvent) {
     const continuar = !registro && ehContinuar(evento)
+    // 1) sobe o arquivo novo (se houver) antes de gravar o lançamento
+    let caminhoNovo: string | null = null
+    if (comprovante.novo) {
+      setEnviandoArquivo(true)
+      try {
+        caminhoNovo = await enviarComprovante(comprovante.novo, idEmpresa, d.obra)
+      } catch (e) {
+        setEnviandoArquivo(false)
+        toast.error(`Não foi possível enviar o comprovante. ${mensagemDeErro(e)}`)
+        return
+      }
+      setEnviandoArquivo(false)
+    }
+    const caminhoFinal = caminhoNovo ?? (comprovante.remover ? null : comprovante.atual)
+
     try {
       await salvar.mutateAsync({
         id: registro?.ID_Saida,
@@ -207,20 +230,29 @@ function FormSaida({
           Fornecedor_Local: limpar(d.fornecedor),
           Descricao: limpar(d.descricao),
           Numero_Nota_Fiscal: limpar(d.nota),
+          Comprovante_URL: caminhoFinal,
         },
       })
-      salvarUltimaObra(d.obra)
-      toast.success(registro ? 'Saída atualizada.' : 'Saída lançada.')
-      if (continuar) {
-        // mantém obra, data e forma — o caso comum é lançar várias notas do mesmo dia
-        const atual = getValues()
-        reset({ ...atual, valor: undefined, fornecedor: '', descricao: '', nota: '' })
-        setFocus('valor')
-      } else {
-        aoFechar()
-      }
     } catch (e) {
+      // lançamento não gravou: o arquivo recém-enviado ficaria solto
+      await apagarComprovante(caminhoNovo)
       toast.error(mensagemDeErro(e))
+      return
+    }
+
+    // 2) o arquivo antigo só sai depois que o lançamento já aponta para o novo
+    if (comprovante.atual && comprovante.atual !== caminhoFinal) await apagarComprovante(comprovante.atual)
+
+    salvarUltimaObra(d.obra)
+    toast.success(registro ? 'Saída atualizada.' : 'Saída lançada.')
+    if (continuar) {
+      // mantém obra, data e forma — o caso comum é lançar várias notas do mesmo dia
+      const atual = getValues()
+      reset({ ...atual, valor: undefined, fornecedor: '', descricao: '', nota: '' })
+      setComprovante(comprovanteInicial(null))
+      setFocus('valor')
+    } else {
+      aoFechar()
     }
   }
 
@@ -230,7 +262,7 @@ function FormSaida({
       aoFechar={aoFechar}
       titulo={registro ? 'Editar saída' : 'Nova saída'}
       idFormulario="form-saida"
-      salvando={salvar.isPending}
+      salvando={salvar.isPending || enviandoArquivo}
       rotuloSalvar={registro ? 'Salvar' : 'Lançar'}
       salvarENovo={!registro}
       aoExcluir={registro && aoExcluir ? () => aoExcluir(registro) : undefined}
@@ -314,6 +346,8 @@ function FormSaida({
         <Campo rotulo="Nº da nota fiscal" ajuda="Opcional.">
           {(a11y) => <Input {...a11y} {...register('nota')} inputMode="numeric" autoComplete="off" />}
         </Campo>
+
+        <CampoComprovante valor={comprovante} onChange={setComprovante} />
       </form>
     </PainelFormulario>
   )
