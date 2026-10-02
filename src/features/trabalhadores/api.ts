@@ -76,11 +76,11 @@ export function usePagamentosSemana(inicio: string, fim: string) {
       const { data, error } = await supabase
         .from('fPagamentosMaoDeObra')
         .select(
-          'ID_Pagamento, ID_Trabalhador, Data_Pagamento, Periodo_Inicio, Periodo_Fim, Tipo_Pagamento, Valor_Pago, Valor_Diaria_Aplicado, dObras(Nome_Obra)',
+          'ID_Pagamento, ID_Trabalhador, Data_Pagamento, Periodo_Inicio, Periodo_Fim, Quantidade_Dias, Dias_Trabalhados, Tipo_Pagamento, Valor_Pago, Valor_Diaria_Aplicado, dObras(Nome_Obra)',
         )
         .eq('ID_Empresa', idEmpresa)
         .or(
-          `and(Periodo_Inicio.lte.${fim},Periodo_Fim.gte.${inicio}),and(Periodo_Inicio.is.null,Data_Pagamento.gte.${inicio},Data_Pagamento.lte.${fim})`,
+          `and(Periodo_Inicio.lte.${fim},Periodo_Fim.gte.${inicio}),and(Data_Pagamento.gte.${inicio},Data_Pagamento.lte.${fim})`,
         )
       if (error) throw error
       return data.map(({ dObras, ...p }) => ({ ...p, Nome_Obra: dObras?.Nome_Obra ?? null }))

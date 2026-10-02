@@ -21,12 +21,12 @@ import { type EstadoPainel, usePainel } from '@/hooks/use-painel'
 import { usePermissao, usePodeEditarLancamento } from '@/hooks/use-permissao'
 import { FORMAS_PAGAMENTO, TIPOS_PAGAMENTO_MO, comValorAtual, valorReferencia } from '@/lib/opcoes'
 import { mensagemDeErro } from '@/utils/erros'
+import { datasPagamento, datasParaSalvar, diasPadrao } from '@/utils/diarias'
 import { cn } from '@/lib/utils'
 import {
   MAX_DIAS_PERIODO,
   diasDoPeriodo,
   diasTrabalhados,
-  ehDomingo,
   formatarData,
   formatarMoeda,
   formatarNumero,
@@ -69,7 +69,10 @@ export function MaoDeObraPage() {
 
   const todos = useMemo(() => consulta.data ?? [], [consulta.data])
   const visiveis = useMemo(
-    () => todos.filter((m) => contem(busca, m.Nome_Trabalhador, m.Funcao, m.Nome_Obra, m.Tipo_Pagamento, m.Observacao)),
+    () =>
+      todos.filter((m) =>
+        contem(busca, m.Nome_Trabalhador, m.Funcao, m.Nome_Obra, m.Tipo_Pagamento, m.Observacao),
+      ),
     [todos, busca],
   )
   const total = visiveis.reduce((soma, m) => soma + num(m.Valor_Pago), 0)
@@ -85,10 +88,19 @@ export function MaoDeObraPage() {
 
       <FiltrosLancamento {...filtros} />
 
-      <TotalPeriodo rotulo="Pago à equipe no mês" total={total} quantidade={visiveis.length} tipo="saida" />
+      <TotalPeriodo
+        rotulo="Pago à equipe no mês"
+        total={total}
+        quantidade={visiveis.length}
+        tipo="saida"
+      />
 
       {todos.length > 0 && (
-        <BarraFiltros busca={busca} aoBuscar={setBusca} placeholder="Buscar por trabalhador, função ou obra" />
+        <BarraFiltros
+          busca={busca}
+          aoBuscar={setBusca}
+          placeholder="Buscar por trabalhador, função ou obra"
+        />
       )}
 
       {consulta.isPending ? (
@@ -110,7 +122,8 @@ export function MaoDeObraPage() {
               ehDiaria(m.Tipo_Pagamento) && m.Quantidade_Dias != null
                 ? `${formatarNumero(m.Quantidade_Dias)} dia(s) × ${formatarMoeda(m.Valor_Diaria_Aplicado)}`
                 : m.Tipo_Pagamento,
-              m.Periodo_Inicio && `${formatarData(m.Periodo_Inicio, 'dd/MM')}–${formatarData(m.Periodo_Fim, 'dd/MM')}`,
+              m.Periodo_Inicio &&
+                `${formatarData(m.Periodo_Inicio, 'dd/MM')}–${formatarData(m.Periodo_Fim, 'dd/MM')}`,
             ]
               .filter(Boolean)
               .join(' · '),
@@ -119,7 +132,8 @@ export function MaoDeObraPage() {
           }))}
           vazio={{
             titulo: 'Nenhum pagamento neste mês',
-            texto: 'Lance as diárias da semana de cada trabalhador para saber o custo real de mão de obra da obra.',
+            texto:
+              'Lance as diárias da semana de cada trabalhador para saber o custo real de mão de obra da obra.',
             filtrando: busca !== '' || filtros.obra !== '',
             aoLimpar: () => {
               setBusca('')
@@ -143,8 +157,8 @@ export function MaoDeObraPage() {
         titulo="Excluir pagamento?"
         texto={
           <>
-            O pagamento de <strong>{p.excluindo?.Nome_Trabalhador}</strong> será apagado e o custo da
-            obra recalculado. Não dá para desfazer.
+            O pagamento de <strong>{p.excluindo?.Nome_Trabalhador}</strong> será apagado e o custo
+            da obra recalculado. Não dá para desfazer.
           </>
         }
         aoConfirmar={async () => {
@@ -182,10 +196,15 @@ const esquema = z
   })
   .superRefine((d, ctx) => {
     if (ehDiaria(d.tipo)) {
-      if (!d.inicio) ctx.addIssue({ code: 'custom', path: ['inicio'], message: 'Informe o início.' })
+      if (!d.inicio)
+        ctx.addIssue({ code: 'custom', path: ['inicio'], message: 'Informe o início.' })
       if (!d.fim) ctx.addIssue({ code: 'custom', path: ['fim'], message: 'Informe o fim.' })
       if (d.inicio && d.fim && d.fim < d.inicio)
-        ctx.addIssue({ code: 'custom', path: ['fim'], message: 'O fim não pode ser antes do início.' })
+        ctx.addIssue({
+          code: 'custom',
+          path: ['fim'],
+          message: 'O fim não pode ser antes do início.',
+        })
       if (!d.dias || d.dias <= 0)
         ctx.addIssue({ code: 'custom', path: ['dias'], message: 'Informe quantos dias trabalhou.' })
       if (!d.diaria || d.diaria <= 0)
@@ -217,7 +236,9 @@ function FormPagamento({
     .filter((t) => t.Status !== 'Inativo' || t.ID_Trabalhador === registro?.ID_Trabalhador)
     .map((t) => ({
       valor: t.ID_Trabalhador,
-      rotulo: t.Funcao ? `${t.Nome_Trabalhador} — ${t.Funcao}` : (t.Nome_Trabalhador ?? t.ID_Trabalhador),
+      rotulo: t.Funcao
+        ? `${t.Nome_Trabalhador} — ${t.Funcao}`
+        : (t.Nome_Trabalhador ?? t.ID_Trabalhador),
     }))
 
   const {
@@ -233,7 +254,8 @@ function FormPagamento({
     resolver: zodResolver(esquema),
     defaultValues: {
       trabalhador: registro?.ID_Trabalhador ?? '',
-      obra: registro?.ID_Obra ?? (obras.opcoes.some((o) => o.valor === ultimaObra) ? ultimaObra : ''),
+      obra:
+        registro?.ID_Obra ?? (obras.opcoes.some((o) => o.valor === ultimaObra) ? ultimaObra : ''),
       tipo: registro?.Tipo_Pagamento ?? 'Diária',
       inicio: registro?.Periodo_Inicio ?? semana.inicio,
       fim: registro?.Periodo_Fim ?? semana.fim,
@@ -262,12 +284,10 @@ function FormPagamento({
   const totalDiarias = centavos((dias ?? 0) * (diaria ?? 0))
   const trabalhador = lista.find((t) => t.ID_Trabalhador === idTrabalhador)
 
-  // Dias marcados no período. Não vai para o banco (lá fica só a quantidade);
-  // serve para montar a contagem tocando dia a dia.
-  const padraoDoPeriodo = (inicio: string, fim: string) =>
-    new Set(diasDoPeriodo(inicio, fim).filter((d) => !ehDomingo(d)))
+  // As datas são persistidas; quantidade manual sem datas exatas fica explícita.
+  const padraoDoPeriodo = (inicio: string, fim: string) => new Set(diasPadrao(inicio, fim))
   const [marcados, setMarcados] = useState<Set<string>>(() =>
-    padraoDoPeriodo(registro?.Periodo_Inicio ?? semana.inicio, registro?.Periodo_Fim ?? semana.fim),
+    registro ? new Set(datasPagamento(registro) ?? []) : padraoDoPeriodo(semana.inicio, semana.fim),
   )
   const [inicio, fim] = useWatch({ control, name: ['inicio', 'fim'] })
   const diasPeriodo = diasDoPeriodo(inicio, fim)
@@ -277,9 +297,11 @@ function FormPagamento({
     setValue('dias', novo.size, { shouldValidate: true })
   }
 
-  function recalcularDias() {
-    const v = getValues()
-    if (v.inicio && v.fim) aplicarMarcados(padraoDoPeriodo(v.inicio, v.fim))
+  function alterarPeriodo(campo: 'inicio' | 'fim', valor: string) {
+    setValue(campo, valor, { shouldDirty: true, shouldValidate: true })
+    const a = campo === 'inicio' ? valor : getValues('inicio')
+    const b = campo === 'fim' ? valor : getValues('fim')
+    aplicarMarcados(padraoDoPeriodo(a, b))
   }
 
   function alternarDia(dia: string) {
@@ -302,6 +324,7 @@ function FormPagamento({
           Periodo_Inicio: emDiaria ? d.inicio : null,
           Periodo_Fim: emDiaria ? d.fim : null,
           Quantidade_Dias: emDiaria ? d.dias : null,
+          Dias_Trabalhados: emDiaria ? datasParaSalvar(marcados, d.dias, d.inicio, d.fim) : null,
           Valor_Diaria_Aplicado: emDiaria ? d.diaria : null,
           Valor_Pago: emDiaria ? centavos((d.dias ?? 0) * (d.diaria ?? 0)) : d.valor,
           Data_Pagamento: d.data,
@@ -315,7 +338,14 @@ function FormPagamento({
         // mesma obra e mesma semana; troca só o trabalhador
         const atual = getValues()
         const padrao = padraoDoPeriodo(atual.inicio, atual.fim)
-        reset({ ...atual, trabalhador: '', diaria: null, valor: null, observacao: '', dias: padrao.size })
+        reset({
+          ...atual,
+          trabalhador: '',
+          diaria: null,
+          valor: null,
+          observacao: '',
+          dias: padrao.size,
+        })
         setMarcados(padrao)
         setFocus('trabalhador')
       } else {
@@ -398,18 +428,52 @@ function FormPagamento({
             <legend className="px-1 text-sm font-semibold">Período trabalhado</legend>
             <div className="grid grid-cols-2 gap-3">
               <Campo rotulo="De" erro={errors.inicio?.message}>
-                {(a11y) => <Input {...a11y} {...register('inicio', { onChange: recalcularDias })} type="date" />}
+                {(a11y) => (
+                  <Controller
+                    control={control}
+                    name="inicio"
+                    render={({ field }) => (
+                      <Input
+                        {...a11y}
+                        name={field.name}
+                        ref={field.ref}
+                        onBlur={field.onBlur}
+                        value={field.value}
+                        onValueChange={(v) => alterarPeriodo('inicio', v)}
+                        type="date"
+                      />
+                    )}
+                  />
+                )}
               </Campo>
               <Campo rotulo="Até" erro={errors.fim?.message}>
-                {(a11y) => <Input {...a11y} {...register('fim', { onChange: recalcularDias })} type="date" />}
+                {(a11y) => (
+                  <Controller
+                    control={control}
+                    name="fim"
+                    render={({ field }) => (
+                      <Input
+                        {...a11y}
+                        name={field.name}
+                        ref={field.ref}
+                        onBlur={field.onBlur}
+                        value={field.value}
+                        onValueChange={(v) => alterarPeriodo('fim', v)}
+                        type="date"
+                      />
+                    )}
+                  />
+                )}
               </Campo>
             </div>
 
-            {diasPeriodo.length > 0 ? (
+            {diasPeriodo.length > 0 && dias === marcados.size ? (
               <div className="grid gap-2">
                 <p className="text-sm font-semibold" id="rotulo-dias-trabalhados">
                   Dias trabalhados
-                  <span className="ml-2 font-normal text-muted-foreground">toque para marcar ou desmarcar</span>
+                  <span className="text-muted-foreground ml-2 font-normal">
+                    toque para marcar ou desmarcar
+                  </span>
                 </p>
                 <div
                   role="group"
@@ -428,10 +492,10 @@ function FormPagamento({
                         onClick={() => alternarDia(dia)}
                         className={cn(
                           'flex min-h-14 cursor-pointer flex-col items-center justify-center rounded-lg border text-xs transition-colors duration-150',
-                          'focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none',
+                          'focus-visible:ring-ring/50 focus-visible:ring-3 focus-visible:outline-none',
                           ativo
                             ? 'border-primary bg-primary text-primary-foreground'
-                            : 'border-dashed bg-card text-muted-foreground line-through decoration-1 hover:border-ring/50',
+                            : 'bg-card text-muted-foreground hover:border-ring/50 border-dashed line-through decoration-1',
                         )}
                       >
                         <span className="font-medium">{nomeDia}</span>
@@ -441,11 +505,24 @@ function FormPagamento({
                   })}
                 </div>
               </div>
+            ) : diasPeriodo.length > 0 ? (
+              <div className="text-muted-foreground grid gap-2 text-sm">
+                <p>
+                  Quantidade manual ou registro antigo: as datas trabalhadas não estão informadas.
+                </p>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => aplicarMarcados(padraoDoPeriodo(inicio, fim))}
+                >
+                  Selecionar dias do período
+                </Button>
+              </div>
             ) : (
               inicio &&
               fim &&
               fim >= inicio && (
-                <p className="text-sm text-muted-foreground">
+                <p className="text-muted-foreground text-sm">
                   Período com mais de {MAX_DIAS_PERIODO} dias: informe a quantidade de dias direto.
                 </p>
               )
@@ -454,14 +531,26 @@ function FormPagamento({
             <div className="grid grid-cols-[7rem_1fr] gap-3">
               <Campo rotulo="Dias" erro={errors.dias?.message}>
                 {(a11y) => (
-                  <Input
-                    {...a11y}
-                    {...register('dias', { setValueAs: (v: string) => (v === '' ? null : Number(String(v).replace(',', '.'))) })}
-                    type="number"
-                    inputMode="decimal"
-                    step="0.5"
-                    min="0"
-                    className="numero text-center font-mono text-lg"
+                  <Controller
+                    control={control}
+                    name="dias"
+                    render={({ field }) => (
+                      <Input
+                        {...a11y}
+                        name={field.name}
+                        ref={field.ref}
+                        onBlur={field.onBlur}
+                        value={field.value ?? ''}
+                        onValueChange={(v) =>
+                          field.onChange(v === '' ? null : Number(v.replace(',', '.')))
+                        }
+                        type="number"
+                        inputMode="decimal"
+                        step="0.5"
+                        min="0"
+                        className="numero text-center font-mono text-lg"
+                      />
+                    )}
                   />
                 )}
               </Campo>
@@ -471,16 +560,23 @@ function FormPagamento({
                     control={control}
                     name="diaria"
                     render={({ field }) => (
-                      <CampoMoeda {...a11y} name={field.name} ref={field.ref} onBlur={field.onBlur} value={field.value} onChange={field.onChange} />
+                      <CampoMoeda
+                        {...a11y}
+                        name={field.name}
+                        ref={field.ref}
+                        onBlur={field.onBlur}
+                        value={field.value}
+                        onChange={field.onChange}
+                      />
                     )}
                   />
                 )}
               </Campo>
             </div>
-            <p className="-mt-2 text-sm text-muted-foreground">
+            <p className="text-muted-foreground -mt-2 text-sm">
               Segunda a sábado já vêm marcados. Para meio dia, digite direto no campo (ex.: 4,5).
             </p>
-            <div className="flex items-baseline justify-between rounded-lg bg-primary px-4 py-3 text-primary-foreground">
+            <div className="bg-primary text-primary-foreground flex items-baseline justify-between rounded-lg px-4 py-3">
               <span className="text-sm font-medium">Total a pagar</span>
               <span className="display numero text-2xl font-bold" aria-live="polite">
                 {formatarMoeda(totalDiarias)}
@@ -509,7 +605,11 @@ function FormPagamento({
           </Campo>
         )}
 
-        <Campo rotulo="Data do pagamento" erro={errors.data?.message} ajuda={dataAntiga && <span className="font-medium text-aviso">{dataAntiga}</span>}>
+        <Campo
+          rotulo="Data do pagamento"
+          erro={errors.data?.message}
+          ajuda={dataAntiga && <span className="text-aviso font-medium">{dataAntiga}</span>}
+        >
           {(a11y) => <Input {...a11y} {...register('data')} type="date" max={hojeISO()} />}
         </Campo>
 
@@ -542,9 +642,9 @@ function FormPagamento({
 function ChavePix({ chave }: { chave: string }) {
   const [copiado, setCopiado] = useState(false)
   return (
-    <div className="-mt-2 flex items-center gap-3 rounded-lg bg-muted px-4 py-2.5">
+    <div className="bg-muted -mt-2 flex items-center gap-3 rounded-lg px-4 py-2.5">
       <div className="min-w-0 flex-1">
-        <p className="text-xs text-muted-foreground">Chave PIX</p>
+        <p className="text-muted-foreground text-xs">Chave PIX</p>
         <p className="truncate font-mono text-sm select-all">{chave}</p>
       </div>
       <Button

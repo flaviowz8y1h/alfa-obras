@@ -230,6 +230,7 @@ export type DadosPagamento = Required<
     | 'Periodo_Inicio'
     | 'Periodo_Fim'
     | 'Quantidade_Dias'
+    | 'Dias_Trabalhados'
     | 'Valor_Diaria_Aplicado'
   >
 >

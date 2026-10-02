@@ -365,6 +365,7 @@ export type Database = {
       }
       fPagamentosMaoDeObra: {
         Row: {
+          Dias_Trabalhados: string[] | null
           Atualizado_Em: string | null
           Atualizado_Por: string | null
           Criado_Em: string
@@ -384,6 +385,7 @@ export type Database = {
           Valor_Pago: number | null
         }
         Insert: {
+          Dias_Trabalhados?: string[] | null
           Atualizado_Em?: string | null
           Atualizado_Por?: string | null
           Criado_Em?: string
@@ -403,6 +405,7 @@ export type Database = {
           Valor_Pago?: number | null
         }
         Update: {
+          Dias_Trabalhados?: string[] | null
           Atualizado_Em?: string | null
           Atualizado_Por?: string | null
           Criado_Em?: string

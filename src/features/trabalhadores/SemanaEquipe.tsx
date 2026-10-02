@@ -11,6 +11,7 @@ import { usePermissao } from '@/hooks/use-permissao'
 import { cn } from '@/lib/utils'
 import type { Trabalhador } from '@/types/app'
 import { mensagemDeErro } from '@/utils/erros'
+import { resumoDiariaNaSemana } from '@/utils/diarias'
 import { formatarData, formatarMoeda, mesAtual, num, paraISO, rotuloDia } from '@/utils/format'
 import { type PagamentoSemana, usePagamentosSemana } from './api'
 
@@ -53,6 +54,7 @@ type LinhaSemana = {
   dias: Set<string>
   valor: number
   obras: Set<string>
+  semDatas: boolean
 }
 
 function montarSemana(
@@ -63,7 +65,13 @@ function montarSemana(
   const porId = new Map(trabalhadores.map((t) => [t.ID_Trabalhador, t]))
   const linhas = new Map<string, LinhaSemana>()
   const linha = (t: Trabalhador) => {
-    const l = linhas.get(t.ID_Trabalhador) ?? { trabalhador: t, dias: new Set(), valor: 0, obras: new Set() }
+    const l = linhas.get(t.ID_Trabalhador) ?? {
+      trabalhador: t,
+      dias: new Set(),
+      valor: 0,
+      obras: new Set(),
+      semDatas: false,
+    }
     linhas.set(t.ID_Trabalhador, l)
     return l
   }
@@ -73,6 +81,13 @@ function montarSemana(
     if (!t) continue
     const l = linha(t)
     if (p.Nome_Obra) l.obras.add(p.Nome_Obra)
+    if (p.Tipo_Pagamento === 'Diária') {
+      const resumo = resumoDiariaNaSemana(p, dias)
+      resumo.datas.forEach((d) => l.dias.add(d))
+      l.valor += resumo.valor
+      l.semDatas ||= resumo.semDatas
+      continue
+    }
     if (!p.Periodo_Inicio || !p.Periodo_Fim) {
       // sem período: conta o valor na semana em que foi pago
       l.valor += num(p.Valor_Pago)
@@ -84,10 +99,7 @@ function montarSemana(
     // período maior que a semana: só a parte proporcional entra aqui
     const total = diasUteis(ini, fim)
     const proporcional = total ? (num(p.Valor_Pago) * cobertos.length) / total : 0
-    l.valor +=
-      p.Tipo_Pagamento === 'Diária' && p.Valor_Diaria_Aplicado
-        ? Math.min(cobertos.length * num(p.Valor_Diaria_Aplicado), num(p.Valor_Pago))
-        : proporcional
+    l.valor += proporcional
   }
 
   // diaristas ativos sem nada pago também aparecem: é justamente quem pode estar faltando
@@ -96,7 +108,10 @@ function montarSemana(
   }
 
   return [...linhas.values()].sort((a, b) =>
-    (a.trabalhador.Nome_Trabalhador ?? '').localeCompare(b.trabalhador.Nome_Trabalhador ?? '', 'pt-BR'),
+    (a.trabalhador.Nome_Trabalhador ?? '').localeCompare(
+      b.trabalhador.Nome_Trabalhador ?? '',
+      'pt-BR',
+    ),
   )
 }
 
@@ -127,10 +142,12 @@ export function PainelEquipe({ trabalhadores }: { trabalhadores: readonly Trabal
   const pagoMes = (mes.data ?? []).reduce((s, p) => s + num(p.Valor_Pago), 0)
 
   const ativos = trabalhadores.filter((t) => (t.Status ?? 'Ativo') === 'Ativo')
-  const porVinculo = [...ativos.reduce((m, t) => {
-    const v = t.Tipo_Vinc_Contrato ?? 'Sem vínculo'
-    return m.set(v, (m.get(v) ?? 0) + 1)
-  }, new Map<string, number>())]
+  const porVinculo = [
+    ...ativos.reduce((m, t) => {
+      const v = t.Tipo_Vinc_Contrato ?? 'Sem vínculo'
+      return m.set(v, (m.get(v) ?? 0) + 1)
+    }, new Map<string, number>()),
+  ]
     .sort((a, b) => b[1] - a[1])
     .map(([v, n]) => `${n} ${v.toLowerCase()}`)
     .join(' · ')
@@ -161,15 +178,27 @@ export function PainelEquipe({ trabalhadores }: { trabalhadores: readonly Trabal
         <CartaoIndicador
           indice={3}
           rotulo="Diaristas sem dia pago"
-          valor={<span className={cn(diaristasSemPagamento > 0 && 'text-aviso')}>{diaristasSemPagamento}</span>}
+          valor={
+            <span className={cn(diaristasSemPagamento > 0 && 'text-aviso')}>
+              {diaristasSemPagamento}
+            </span>
+          }
           detalhe="Diaristas ativos sem pagamento que cubra a semana"
         />
       </FaixaIndicadores>
 
-      <section aria-labelledby="titulo-semana" className="overflow-hidden rounded-xl border bg-card">
+      <section
+        aria-labelledby="titulo-semana"
+        className="bg-card overflow-hidden rounded-xl border"
+      >
         <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-4 sm:px-5">
           <div className="flex items-center gap-1">
-            <Button variant="ghost" size="icon" onClick={() => setInicio(paraISO(addDays(parseISO(inicio), -7)))} aria-label="Semana anterior">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setInicio(paraISO(addDays(parseISO(inicio), -7)))}
+              aria-label="Semana anterior"
+            >
               <ChevronLeft aria-hidden="true" />
             </Button>
             <h2 id="titulo-semana" className="min-w-0 px-1 text-lg font-bold" aria-live="polite">
@@ -191,14 +220,14 @@ export function PainelEquipe({ trabalhadores }: { trabalhadores: readonly Trabal
             )}
           </div>
           <div className="flex flex-wrap items-center gap-4">
-            <ul className="flex gap-4 text-xs text-muted-foreground" aria-label="Legenda">
+            <ul className="text-muted-foreground flex gap-4 text-xs" aria-label="Legenda">
               <li className="flex items-center gap-1.5">
                 <Celula paga />
                 Dia pago
               </li>
               <li className="flex items-center gap-1.5">
                 <Celula paga={false} />
-                Sem pagamento
+                Sem dia confirmado
               </li>
             </ul>
             {podeLancar && (
@@ -217,17 +246,20 @@ export function PainelEquipe({ trabalhadores }: { trabalhadores: readonly Trabal
             ))}
           </div>
         ) : consulta.isError ? (
-          <p className="px-5 pb-5 text-sm text-destructive">{mensagemDeErro(consulta.error)}</p>
+          <p className="text-destructive px-5 pb-5 text-sm">{mensagemDeErro(consulta.error)}</p>
         ) : linhas.length === 0 ? (
-          <p className="border-t px-5 py-8 text-center text-sm text-muted-foreground">
+          <p className="text-muted-foreground border-t px-5 py-8 text-center text-sm">
             Nenhum pagamento de mão de obra nesta semana.
           </p>
         ) : (
           <>
             {/* Celular: um cartão por pessoa */}
-            <ul className="grid gap-3 border-t bg-muted/30 p-3 md:hidden">
+            <ul className="bg-muted/30 grid gap-3 border-t p-3 md:hidden">
               {linhas.map((l) => (
-                <li key={l.trabalhador.ID_Trabalhador} className="grid gap-3 rounded-xl border bg-card p-4">
+                <li
+                  key={l.trabalhador.ID_Trabalhador}
+                  className="bg-card grid gap-3 rounded-xl border p-4"
+                >
                   <div className="flex items-start justify-between gap-3">
                     <Pessoa l={l} />
                     <SeloVinculo vinculo={l.trabalhador.Tipo_Vinc_Contrato} />
@@ -235,7 +267,7 @@ export function PainelEquipe({ trabalhadores }: { trabalhadores: readonly Trabal
                   <div className="grid grid-cols-6 gap-1.5">
                     {dias.map((d) => (
                       <div key={d} className="grid justify-items-center gap-1">
-                        <span className="text-[0.6875rem] font-semibold text-muted-foreground uppercase">
+                        <span className="text-muted-foreground text-[0.6875rem] font-semibold uppercase">
                           {rotuloDia(d).semana}
                         </span>
                         <Celula paga={l.dias.has(d)} dia={d} />
@@ -244,7 +276,13 @@ export function PainelEquipe({ trabalhadores }: { trabalhadores: readonly Trabal
                   </div>
                   <p className="flex items-baseline justify-between border-t pt-3 text-sm">
                     <span className="text-muted-foreground">
-                      <span className="numero">{l.dias.size}</span> {l.dias.size === 1 ? 'dia pago' : 'dias pagos'}
+                      <span className="numero">{l.dias.size}</span>{' '}
+                      {l.dias.size === 1 ? 'dia confirmado' : 'dias confirmados'}
+                      {l.semDatas && (
+                        <span className="text-aviso block text-xs">
+                          Há pagamento sem datas informadas
+                        </span>
+                      )}
                     </span>
                     <Moeda valor={l.valor} className="text-base font-bold" />
                   </p>
@@ -255,18 +293,32 @@ export function PainelEquipe({ trabalhadores }: { trabalhadores: readonly Trabal
             {/* Desktop: tabela */}
             <div className="hidden overflow-x-auto md:block">
               <table className="w-full text-sm">
-                <thead className="border-t bg-muted/60 text-xs text-muted-foreground uppercase">
+                <thead className="bg-muted/60 text-muted-foreground border-t text-xs uppercase">
                   <tr>
-                    <th scope="col" className="py-2.5 pr-3 pl-5 text-left font-semibold">Trabalhador</th>
-                    <th scope="col" className="px-3 py-2.5 text-left font-semibold">Vínculo</th>
+                    <th scope="col" className="py-2.5 pr-3 pl-5 text-left font-semibold">
+                      Trabalhador
+                    </th>
+                    <th scope="col" className="px-3 py-2.5 text-left font-semibold">
+                      Vínculo
+                    </th>
                     {dias.map((d) => (
-                      <th key={d} scope="col" className="w-10 px-1 py-2.5 text-center font-semibold">
+                      <th
+                        key={d}
+                        scope="col"
+                        className="w-10 px-1 py-2.5 text-center font-semibold"
+                      >
                         {rotuloDia(d).semana}
-                        <span className="numero block font-normal normal-case">{rotuloDia(d).numero}</span>
+                        <span className="numero block font-normal normal-case">
+                          {rotuloDia(d).numero}
+                        </span>
                       </th>
                     ))}
-                    <th scope="col" className="px-3 py-2.5 text-right font-semibold">Dias</th>
-                    <th scope="col" className="py-2.5 pr-5 pl-3 text-right font-semibold">Pago na semana</th>
+                    <th scope="col" className="px-3 py-2.5 text-right font-semibold">
+                      Dias
+                    </th>
+                    <th scope="col" className="py-2.5 pr-5 pl-3 text-right font-semibold">
+                      Pago na semana
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y border-t">
@@ -285,14 +337,23 @@ export function PainelEquipe({ trabalhadores }: { trabalhadores: readonly Trabal
                           </div>
                         </td>
                       ))}
-                      <td className="numero px-3 py-3 text-right">{l.dias.size || '—'}</td>
+                      <td className="numero px-3 py-3 text-right">
+                        {l.dias.size || '—'}
+                        {l.semDatas && (
+                          <span className="text-aviso block text-xs">Datas não informadas</span>
+                        )}
+                      </td>
                       <td className="py-3 pr-5 pl-3 text-right font-semibold">
-                        {l.valor > 0 ? <Moeda valor={l.valor} /> : <span className="text-muted-foreground">—</span>}
+                        {l.valor > 0 ? (
+                          <Moeda valor={l.valor} />
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
                       </td>
                     </tr>
                   ))}
                 </tbody>
-                <tfoot className="border-t bg-muted/40 font-semibold">
+                <tfoot className="bg-muted/40 border-t font-semibold">
                   <tr>
                     <td className="py-3 pl-5" colSpan={2 + dias.length}>
                       Total da semana
@@ -322,12 +383,12 @@ function Pessoa({ l }: { l: LinhaSemana }) {
     .join('')
   return (
     <div className="flex min-w-0 items-center gap-3">
-      <span className="grid size-10 shrink-0 place-items-center rounded-full bg-secondary font-heading text-sm font-bold text-secondary-foreground">
+      <span className="bg-secondary font-heading text-secondary-foreground grid size-10 shrink-0 place-items-center rounded-full text-sm font-bold">
         {iniciais}
       </span>
       <div className="min-w-0">
         <p className="truncate font-semibold">{t.Nome_Trabalhador ?? 'Sem nome'}</p>
-        <p className="truncate text-xs text-muted-foreground">
+        <p className="text-muted-foreground truncate text-xs">
           {[t.Funcao, [...l.obras].join(', ')].filter(Boolean).join(' · ') || '—'}
         </p>
       </div>
@@ -336,12 +397,14 @@ function Pessoa({ l }: { l: LinhaSemana }) {
 }
 
 function Celula({ paga, dia }: { paga: boolean; dia?: string }) {
-  const rotulo = dia ? `${formatarData(dia, "EEEE, d 'de' MMMM")}: ${paga ? 'dia pago' : 'sem pagamento'}` : undefined
+  const rotulo = dia
+    ? `${formatarData(dia, "EEEE, d 'de' MMMM")}: ${paga ? 'dia pago' : 'sem dia confirmado'}`
+    : undefined
   return paga ? (
     <span
       role={rotulo ? 'img' : undefined}
       aria-label={rotulo}
-      className="grid size-7 place-items-center rounded-md bg-primary text-primary-foreground"
+      className="bg-primary text-primary-foreground grid size-7 place-items-center rounded-md"
     >
       <Check className="size-4" strokeWidth={3} aria-hidden="true" />
     </span>
@@ -349,7 +412,7 @@ function Celula({ paga, dia }: { paga: boolean; dia?: string }) {
     <span
       role={rotulo ? 'img' : undefined}
       aria-label={rotulo}
-      className="size-7 rounded-md border-[1.5px] border-dashed border-input"
+      className="border-input size-7 rounded-md border-[1.5px] border-dashed"
     />
   )
 }
