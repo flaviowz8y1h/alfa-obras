@@ -426,7 +426,7 @@ function FormPagamento({
         {diariaMode ? (
           <fieldset className="grid gap-5 rounded-xl border p-4">
             <legend className="px-1 text-sm font-semibold">Período trabalhado</legend>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <Campo rotulo="De" erro={errors.inicio?.message}>
                 {(a11y) => (
                   <Controller
