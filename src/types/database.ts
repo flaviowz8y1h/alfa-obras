@@ -244,10 +244,10 @@ export type Database = {
           },
           {
             foreignKeyName: "dObras_ID_Cliente_fkey"
-            columns: ["ID_Cliente"]
+            columns: ["ID_Empresa", "ID_Cliente"]
             isOneToOne: false
             referencedRelation: "dClientes"
-            referencedColumns: ["ID_Cliente"]
+            referencedColumns: ["ID_Empresa", "ID_Cliente"]
           },
           {
             foreignKeyName: "dObras_ID_Empresa_fkey"
@@ -365,12 +365,12 @@ export type Database = {
       }
       fPagamentosMaoDeObra: {
         Row: {
-          Dias_Trabalhados: string[] | null
           Atualizado_Em: string | null
           Atualizado_Por: string | null
           Criado_Em: string
           Criado_Por: string | null
           Data_Pagamento: string | null
+          Dias_Trabalhados: string[] | null
           Forma_Pagamento: string | null
           ID_Empresa: string
           ID_Obra: string
@@ -385,12 +385,12 @@ export type Database = {
           Valor_Pago: number | null
         }
         Insert: {
-          Dias_Trabalhados?: string[] | null
           Atualizado_Em?: string | null
           Atualizado_Por?: string | null
           Criado_Em?: string
           Criado_Por?: string | null
           Data_Pagamento?: string | null
+          Dias_Trabalhados?: string[] | null
           Forma_Pagamento?: string | null
           ID_Empresa: string
           ID_Obra: string
@@ -405,12 +405,12 @@ export type Database = {
           Valor_Pago?: number | null
         }
         Update: {
-          Dias_Trabalhados?: string[] | null
           Atualizado_Em?: string | null
           Atualizado_Por?: string | null
           Criado_Em?: string
           Criado_Por?: string | null
           Data_Pagamento?: string | null
+          Dias_Trabalhados?: string[] | null
           Forma_Pagamento?: string | null
           ID_Empresa?: string
           ID_Obra?: string
@@ -448,24 +448,24 @@ export type Database = {
           },
           {
             foreignKeyName: "fPagamentosMaoDeObra_ID_Obra_fkey"
-            columns: ["ID_Obra"]
+            columns: ["ID_Empresa", "ID_Obra"]
             isOneToOne: false
             referencedRelation: "dObras"
-            referencedColumns: ["ID_Obra"]
+            referencedColumns: ["ID_Empresa", "ID_Obra"]
           },
           {
             foreignKeyName: "fPagamentosMaoDeObra_ID_Obra_fkey"
-            columns: ["ID_Obra"]
+            columns: ["ID_Empresa", "ID_Obra"]
             isOneToOne: false
             referencedRelation: "vw_resumo_obras"
-            referencedColumns: ["ID_Obra"]
+            referencedColumns: ["ID_Empresa", "ID_Obra"]
           },
           {
             foreignKeyName: "fPagamentosMaoDeObra_ID_Trabalhador_fkey"
-            columns: ["ID_Trabalhador"]
+            columns: ["ID_Empresa", "ID_Trabalhador"]
             isOneToOne: false
             referencedRelation: "dTrabalhadores"
-            referencedColumns: ["ID_Trabalhador"]
+            referencedColumns: ["ID_Empresa", "ID_Trabalhador"]
           },
         ]
       }
@@ -533,17 +533,17 @@ export type Database = {
           },
           {
             foreignKeyName: "fRecebimentosObras_ID_Obra_fkey"
-            columns: ["ID_Obra"]
+            columns: ["ID_Empresa", "ID_Obra"]
             isOneToOne: false
             referencedRelation: "dObras"
-            referencedColumns: ["ID_Obra"]
+            referencedColumns: ["ID_Empresa", "ID_Obra"]
           },
           {
             foreignKeyName: "fRecebimentosObras_ID_Obra_fkey"
-            columns: ["ID_Obra"]
+            columns: ["ID_Empresa", "ID_Obra"]
             isOneToOne: false
             referencedRelation: "vw_resumo_obras"
-            referencedColumns: ["ID_Obra"]
+            referencedColumns: ["ID_Empresa", "ID_Obra"]
           },
         ]
       }
@@ -616,10 +616,10 @@ export type Database = {
           },
           {
             foreignKeyName: "fSaidasObras_ID_Categoria_fkey"
-            columns: ["ID_Categoria"]
+            columns: ["ID_Empresa", "ID_Categoria"]
             isOneToOne: false
             referencedRelation: "dCategoriaGastos"
-            referencedColumns: ["ID_Categoria"]
+            referencedColumns: ["ID_Empresa", "ID_Categoria"]
           },
           {
             foreignKeyName: "fSaidasObras_ID_Empresa_fkey"
@@ -630,17 +630,17 @@ export type Database = {
           },
           {
             foreignKeyName: "fSaidasObras_ID_Obra_fkey"
-            columns: ["ID_Obra"]
+            columns: ["ID_Empresa", "ID_Obra"]
             isOneToOne: false
             referencedRelation: "dObras"
-            referencedColumns: ["ID_Obra"]
+            referencedColumns: ["ID_Empresa", "ID_Obra"]
           },
           {
             foreignKeyName: "fSaidasObras_ID_Obra_fkey"
-            columns: ["ID_Obra"]
+            columns: ["ID_Empresa", "ID_Obra"]
             isOneToOne: false
             referencedRelation: "vw_resumo_obras"
-            referencedColumns: ["ID_Obra"]
+            referencedColumns: ["ID_Empresa", "ID_Obra"]
           },
         ]
       }
