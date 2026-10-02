@@ -106,14 +106,14 @@ export function TrabalhadoresPage() {
       ) : (
         <ul className="grid gap-2" aria-label="Trabalhadores">
           {visiveis.map((t) => (
-            <li key={t.ID_Trabalhador} className="flex items-stretch gap-2">
+            <li key={t.ID_Trabalhador} className="flex min-w-0 items-stretch gap-2">
               <button
                 type="button"
                 onClick={() => permissao.editar && p.editar(t)}
                 disabled={!permissao.editar}
-                className="group flex min-h-18 min-w-0 flex-1 cursor-pointer items-center gap-4 rounded-xl border bg-card px-4 py-3 text-left transition-colors duration-150 hover:border-ring/40 hover:bg-accent/40 focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none disabled:cursor-default"
+                className="group flex min-h-18 min-w-0 flex-1 cursor-pointer flex-col items-start gap-2 rounded-xl border bg-card px-4 py-3 text-left transition-colors duration-150 hover:border-ring/40 hover:bg-accent/40 focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none disabled:cursor-default sm:flex-row sm:items-center sm:gap-4"
               >
-                <span className="min-w-0 flex-1">
+                <span className="w-full min-w-0 flex-1 sm:w-auto">
                   <span className="block truncate text-base font-semibold">
                     {t.Nome_Trabalhador ?? 'Sem nome'}
                   </span>
