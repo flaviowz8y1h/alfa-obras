@@ -41,7 +41,12 @@ export function useSalvarCategoria() {
       if (error) throw error
       return data
     },
-    onSuccess: () => void qc.invalidateQueries({ queryKey: [CHAVE_CATEGORIAS] }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: [CHAVE_CATEGORIAS] })
+      // "Entra no custo da obra" muda custo, saldo, margem e o fluxo mensal
+      void qc.invalidateQueries({ queryKey: ['vw_resumo_obras'] })
+      void qc.invalidateQueries({ queryKey: ['vw_fluxo_mensal'] })
+    },
   })
 }
 

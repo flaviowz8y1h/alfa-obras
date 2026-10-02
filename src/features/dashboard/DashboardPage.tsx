@@ -123,11 +123,13 @@ function CardsTotais({ totais: t }: { totais: Totais }) {
         valor={<Saldo valor={t.saldo - fora} />}
         detalhe={
           <>
-            Margem prevista da carteira <span className="numero font-semibold">{formatarMoeda(t.margemPrevista)}</span>
+            {/* margem da empresa: a das obras menos o que saiu fora delas */}
+            Margem prevista da empresa{' '}
+            <span className="numero font-semibold">{formatarMoeda(t.margemPrevista - fora)}</span>
             {fora > 0 && (
               <>
-                {' · '}inclui <span className="numero font-semibold">{formatarMoeda(fora)}</span> de equipamentos e despesas
-                fora das obras
+                {' · '}já desconta <span className="numero font-semibold">{formatarMoeda(fora)}</span> de equipamentos
+                e despesas fora das obras
               </>
             )}
           </>

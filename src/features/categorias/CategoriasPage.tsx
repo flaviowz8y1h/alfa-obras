@@ -1,7 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { ChevronRight, Lock, Tags } from 'lucide-react'
 import { useMemo, useState } from 'react'
-import { useForm } from 'react-hook-form'
+import { useForm, useWatch } from 'react-hook-form'
 import { toast } from 'sonner'
 import { z } from 'zod'
 import {
@@ -279,6 +279,7 @@ function FormCategoria({
   const registro = estado.modo === 'editar' ? estado.registro : null
   const {
     register,
+    control,
     handleSubmit,
     formState: { errors },
   } = useForm<Dados>({
@@ -291,6 +292,10 @@ function FormCategoria({
       status: registro?.Status ?? 'Ativo',
     },
   })
+
+  // mudar "entra no custo" recalcula o custo de todas as obras que já usaram a categoria
+  const impacta = useWatch({ control, name: 'impacta' })
+  const recalcula = !!registro && registro.totalSaidas > 0 && impacta !== (registro.Impacta_Obra ?? 'Sim')
 
   async function enviar(d: Dados) {
     try {
@@ -346,7 +351,17 @@ function FormCategoria({
               />
             )}
           </Campo>
-          <Campo rotulo="Entra no custo da obra?">
+          <Campo
+            rotulo="Entra no custo da obra?"
+            ajuda={
+              recalcula && (
+                <span className="font-medium text-aviso">
+                  Isso recalcula o custo, o saldo e a margem das obras com as {registro.totalSaidas} saída(s) já
+                  lançadas nesta categoria.
+                </span>
+              )
+            }
+          >
             {(a11y) => (
               <SelectNativo {...a11y} {...register('impacta')} opcoes={comValorAtual(SIM_NAO, registro?.Impacta_Obra)} />
             )}

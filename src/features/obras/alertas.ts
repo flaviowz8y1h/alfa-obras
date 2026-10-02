@@ -34,6 +34,14 @@ export function alertasDasObras(linhas: readonly ResumoObra[]): AlertaObra[] {
         texto: `Já saiu ${formatarMoeda(-saldo)} a mais do que entrou. Hora de cobrar a próxima parcela.`,
         acao,
       })
+    } else if (contratado > 0 && custo > contratado) {
+      alertas.push({
+        id: `${o.ID_Obra}-custo`,
+        nivel: 'critico',
+        titulo: `${nome}: custo passou o contrato`,
+        texto: `O custo já está ${formatarMoeda(custo - contratado)} acima do valor contratado. Revise o orçamento ou negocie um aditivo.`,
+        acao,
+      })
     } else if (contratado > 0 && custo / contratado > CUSTO_ALTO) {
       alertas.push({
         id: `${o.ID_Obra}-custo`,
