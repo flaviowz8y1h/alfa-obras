@@ -1,8 +1,5 @@
--- 1) Saída pode ser "Geral da empresa" (sem obra): equipamentos, ferramentas, despesas da empresa.
 alter table public."fSaidasObras" alter column "ID_Obra" drop not null;
 
--- 2) Custo da obra respeita a categoria: Impacta_Obra = 'Não' (ex.: Compra de Equipamentos)
---    não entra em custo, saldo nem margem da obra.
 create or replace view public.vw_resumo_obras with (security_invoker = on) as
 select
   o."ID_Obra",
@@ -41,8 +38,6 @@ left join (
   group by "ID_Obra"
 ) p on p."ID_Obra" = o."ID_Obra";
 
--- 3) Fluxo mensal: a saída continua no caixa da empresa, mas fora do fluxo da obra
---    quando não impacta a obra (vira ID_Obra nulo = "da empresa").
 create or replace view public.vw_fluxo_mensal with (security_invoker = on) as
 select
   "ID_Empresa",

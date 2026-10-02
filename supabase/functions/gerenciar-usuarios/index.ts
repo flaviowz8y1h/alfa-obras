@@ -5,10 +5,26 @@
 //  - admin: service_role só para a API de Auth (criar login, bloquear, trocar senha).
 import { createClient } from 'npm:@supabase/supabase-js@2'
 
-const CORS = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+// Domínios do app separados por vírgula (secret ALLOWED_ORIGINS). Sem o secret, libera tudo.
+const ORIGENS = (Deno.env.get('ALLOWED_ORIGINS') ?? '')
+  .split(',')
+  .map((o) => o.trim())
+  .filter(Boolean)
+
+function origemPermitida(req: Request) {
+  if (ORIGENS.length === 0) return '*'
+  const origem = req.headers.get('Origin') ?? ''
+  const local = /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origem)
+  return ORIGENS.includes(origem) || local ? origem : ORIGENS[0]
+}
+
+function cabecalhosCors(req: Request): Record<string, string> {
+  return {
+    'Access-Control-Allow-Origin': origemPermitida(req),
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    Vary: 'Origin',
+  }
 }
 
 const PERFIS_GERENCIAVEIS = ['admin', 'operacional'] as const
@@ -26,7 +42,7 @@ class ErroHttp extends Error {
 function resposta(corpo: unknown, status = 200) {
   return new Response(JSON.stringify(corpo), {
     status,
-    headers: { ...CORS, 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json' },
   })
 }
 
@@ -57,7 +73,14 @@ function validarNome(nome: unknown): string {
 }
 
 Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS })
+  const cors = cabecalhosCors(req)
+  if (req.method === 'OPTIONS') return new Response('ok', { headers: cors })
+  const res = await atender(req)
+  for (const [k, v] of Object.entries(cors)) res.headers.set(k, v)
+  return res
+})
+
+async function atender(req: Request): Promise<Response> {
   if (req.method !== 'POST') return resposta({ erro: 'Método não permitido.' }, 405)
 
   try {
@@ -211,4 +234,4 @@ Deno.serve(async (req) => {
     console.error(e)
     return resposta({ erro: 'Erro inesperado no servidor. Tente de novo.' }, 500)
   }
-})
+}

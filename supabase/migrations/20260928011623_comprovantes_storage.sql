@@ -12,7 +12,6 @@ values (
 )
 on conflict (id) do nothing;
 
--- Ler: qualquer usuário ativo da empresa dona da pasta.
 create policy comprovantes_select on storage.objects
   for select to authenticated
   using (
@@ -21,7 +20,6 @@ create policy comprovantes_select on storage.objects
     and (select app_private.owner_mfa_ok())
   );
 
--- Enviar: qualquer perfil ativo, só na pasta da própria empresa.
 create policy comprovantes_insert on storage.objects
   for insert to authenticated
   with check (
@@ -31,7 +29,6 @@ create policy comprovantes_insert on storage.objects
     and (select app_private.owner_mfa_ok())
   );
 
--- Apagar: o owner, ou quem enviou o arquivo (para trocar um comprovante errado).
 create policy comprovantes_delete on storage.objects
   for delete to authenticated
   using (
@@ -43,5 +40,3 @@ create policy comprovantes_delete on storage.objects
       or owner_id = (select auth.uid())::text
     )
   );
-
--- Sem policy de UPDATE: arquivo enviado não é sobrescrito; troca = novo upload + delete.

@@ -1,6 +1,3 @@
--- 1) Auditoria à prova de falsificação
---    Com usuário logado, Criado_Por/Criado_Em vêm sempre da sessão (o valor enviado é ignorado)
---    e nunca mudam depois. Sem sessão (SQL no painel, importação) mantém o valor informado.
 create or replace function app_private.set_audit_fields()
 returns trigger
 language plpgsql
@@ -24,8 +21,6 @@ begin
 end;
 $$;
 
--- 2) Lançamentos: owner/admin editam qualquer um; operacional só os que ele mesmo criou.
---    (WITH CHECK roda depois do trigger, que preserva Criado_Por; não dá para "adotar" um lançamento.)
 drop policy if exists saidas_update on public."fSaidasObras";
 create policy saidas_update on public."fSaidasObras" for update to authenticated
 using (
