@@ -23,7 +23,7 @@ export function TemaProvider({ children }: { children: React.ReactNode }) {
     document.documentElement.classList.toggle('dark', tema === 'escuro')
     document
       .querySelector('meta[name="theme-color"]')
-      ?.setAttribute('content', tema === 'escuro' ? '#070F26' : '#0A1A3F')
+      ?.setAttribute('content', tema === 'escuro' ? '#0B1533' : '#111F49')
   }, [tema])
 
   const alternar = useCallback(() => {

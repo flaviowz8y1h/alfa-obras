@@ -19,3 +19,9 @@ const REGRAS: Record<Recurso, Record<Acao, readonly Perfil[]>> = {
 export function pode(perfil: Perfil, acao: Acao, recurso: Recurso): boolean {
   return REGRAS[recurso][acao].includes(perfil)
 }
+
+/** Lançamentos: owner/admin editam qualquer um; operacional só os que ele mesmo criou (policy *_update). */
+export function podeEditarLancamento(perfil: Perfil, idUsuario: string, criadoPor: string | null): boolean {
+  if (!pode(perfil, 'editar', 'lancamentos')) return false
+  return perfil !== 'operacional' || criadoPor === idUsuario
+}

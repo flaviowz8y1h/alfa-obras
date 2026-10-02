@@ -62,3 +62,31 @@ export function useExcluirTrabalhador() {
     onSuccess: () => void qc.invalidateQueries({ queryKey: [CHAVE_TRABALHADORES] }),
   })
 }
+
+/**
+ * Pagamentos de mão de obra que tocam a semana: período cruzando [inicio, fim]
+ * ou, sem período, pagos dentro dela. A chave começa pela tabela para os
+ * formulários de pagamento invalidarem esta consulta também.
+ */
+export function usePagamentosSemana(inicio: string, fim: string) {
+  const { idEmpresa } = useUsuarioLogado()
+  return useQuery({
+    queryKey: ['fPagamentosMaoDeObra', idEmpresa, 'semana', inicio],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('fPagamentosMaoDeObra')
+        .select(
+          'ID_Pagamento, ID_Trabalhador, Data_Pagamento, Periodo_Inicio, Periodo_Fim, Tipo_Pagamento, Valor_Pago, Valor_Diaria_Aplicado, dObras(Nome_Obra)',
+        )
+        .eq('ID_Empresa', idEmpresa)
+        .or(
+          `and(Periodo_Inicio.lte.${fim},Periodo_Fim.gte.${inicio}),and(Periodo_Inicio.is.null,Data_Pagamento.gte.${inicio},Data_Pagamento.lte.${fim})`,
+        )
+      if (error) throw error
+      return data.map(({ dObras, ...p }) => ({ ...p, Nome_Obra: dObras?.Nome_Obra ?? null }))
+    },
+    placeholderData: (anterior) => anterior,
+  })
+}
+
+export type PagamentoSemana = NonNullable<ReturnType<typeof usePagamentosSemana>['data']>[number]

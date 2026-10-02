@@ -2,7 +2,7 @@ import { supabase } from '@/lib/supabase'
 
 /*
  * Comprovantes das saídas no bucket privado `comprovantes`.
- * Caminho: {ID_Empresa}/{ID_Obra}/{uuid}.{ext} — a RLS do Storage libera só a pasta da empresa.
+ * Caminho: {ID_Empresa}/{ID_Obra ou 'empresa'}/{uuid}.{ext} — a RLS do Storage libera só a pasta da empresa.
  * Em fSaidasObras.Comprovante_URL guardamos o CAMINHO (não uma URL pública).
  */
 

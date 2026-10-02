@@ -4,7 +4,7 @@ import { cn } from '@/lib/utils'
 export function Monograma({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 48 48" className={cn('size-9', className)} aria-hidden="true" fill="none">
-      <path d="M13 40 23 8h4L17 40z" fill="#1D4ED8" />
+      <path d="M13 40 23 8h4L17 40z" fill="#2067AE" />
       <path d="M23 8h4l12 32h-5z" fill="currentColor" />
       <path d="M7 40 24 26l17 14h-6L24 31 13 40z" fill="currentColor" />
       <g fill="#fff" opacity=".9">
@@ -15,20 +15,20 @@ export function Monograma({ className }: { className?: string }) {
   )
 }
 
-/** Logo completo numa "placa de obra" branca — funciona em tema claro e escuro. */
+/** Logo completo (traço claro) sobre placa marinho — funciona em tema claro e escuro. */
 export function PlacaLogo({ className }: { className?: string }) {
   return (
     <div
       className={cn(
-        'rounded-xl bg-white p-4 shadow-sm ring-1 ring-black/5 dark:ring-white/10',
+        'rounded-xl bg-marca p-4 shadow-sm ring-1 ring-black/5 dark:ring-white/10',
         className,
       )}
     >
       <img
-        src="/logo-alfa.webp"
+        src="/logo-alfa-clara.webp"
         alt="Alfa Construções — Engenharia de alto padrão"
-        width={1536}
-        height={1024}
+        width={1024}
+        height={1022}
         className="h-auto w-full"
         decoding="async"
       />

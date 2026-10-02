@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMemo, useState } from 'react'
-import { Controller, useForm } from 'react-hook-form'
+import { Controller, useForm, useWatch } from 'react-hook-form'
 import { toast } from 'sonner'
 import { z } from 'zod'
 import {
@@ -18,14 +18,15 @@ import { useUsuarioLogado } from '@/features/auth/auth-context'
 import { apagarComprovante, comprovanteInicial, enviarComprovante } from '@/lib/comprovantes'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { useCategorias } from '@/features/categorias/api'
+import { type CategoriaLista, useCategorias } from '@/features/categorias/api'
 import { type EstadoPainel, usePainel } from '@/hooks/use-painel'
-import { usePermissao } from '@/hooks/use-permissao'
+import { usePermissao, usePodeEditarLancamento } from '@/hooks/use-permissao'
 import { FORMAS_PAGAMENTO, comValorAtual } from '@/lib/opcoes'
 import { mensagemDeErro } from '@/utils/erros'
 import { hojeISO, num } from '@/utils/format'
 import { contem, limpar } from '@/utils/texto'
 import { type SaidaLista, useExcluirSaida, useFornecedores, useSaidas, useSalvarSaida } from './api'
+import { avisoDataAntiga, dataLancamento } from './data'
 import { EscolhaOpcao, FiltrosLancamento, ListaLancamentos, TotalPeriodo } from './comum'
 import {
   ehContinuar,
@@ -41,6 +42,7 @@ export function SaidasPage() {
   const filtros = useFiltrosLancamento()
   const consulta = useSaidas(filtros)
   const permissao = usePermissao('lancamentos')
+  const podeEditar = usePodeEditarLancamento()
   const p = usePainel<SaidaLista>()
   const excluir = useExcluirSaida()
   const [busca, setBusca] = useState('')
@@ -84,13 +86,14 @@ export function SaidasPage() {
       ) : (
         <ListaLancamentos
           tipo="saida"
-          podeEditar={permissao.editar}
+          icone="saida"
+          podeEditar={podeEditar}
           aoAbrir={p.editar}
           itens={visiveis.map((s) => ({
             id: s.ID_Saida,
             data: s.Data_Saida,
             titulo: s.Descricao || s.Nome_Categoria || 'Saída',
-            detalhe: [s.Nome_Obra, s.Fornecedor_Local, s.Forma_Pagamento].filter(Boolean).join(' · '),
+            detalhe: [s.Nome_Obra ?? 'Geral da empresa', s.Fornecedor_Local, s.Forma_Pagamento].filter(Boolean).join(' · '),
             valor: s.Valor,
             anexo: !!s.Comprovante_URL,
             registro: s,
@@ -139,11 +142,22 @@ export function SaidasPage() {
 
 /* ---------------- Formulário ---------------- */
 
+/** Para onde a saída vai: grupo do DRE e se entra no custo da obra (vem da categoria). */
+function destinoDaSaida(c: CategoriaLista | undefined, semObra: boolean): string | undefined {
+  if (!c) return undefined
+  const grupo = c.Grupo_DRE ? `Vai para: ${c.Grupo_DRE}` : 'Categoria sem grupo do DRE'
+  if (semObra) return `${grupo} · despesa da empresa, fora das obras`
+  return c.Impacta_Obra === 'Não' ? `${grupo} · não entra no custo da obra` : `${grupo} · entra no custo da obra`
+}
+
+/** Valor do select para saída sem obra (equipamentos, ferramentas, despesas da empresa). Vira ID_Obra nulo. */
+const SEM_OBRA = 'empresa'
+
 const esquema = z.object({
   valor: z.number({ error: 'Informe o valor.' }).positive('O valor precisa ser maior que zero.'),
   obra: z.string().min(1, 'Escolha a obra.'),
   categoria: z.string().min(1, 'Escolha a categoria.'),
-  data: z.string().min(1, 'Informe a data.'),
+  data: dataLancamento(),
   forma: z.string().min(1, 'Escolha como foi pago.'),
   fornecedor: z.string(),
   descricao: z.string(),
@@ -166,6 +180,7 @@ function FormSaida({
   const categorias = useCategorias()
   const fornecedores = useFornecedores()
 
+  const opcoesObra = [{ valor: SEM_OBRA, rotulo: 'Geral da empresa (sem obra)' }, ...obras.opcoes]
   const opcoesCategoria = (categorias.data ?? [])
     .filter((c) => c.Status !== 'Inativo' || c.ID_Categoria === registro?.ID_Categoria)
     .map((c) => ({ valor: c.ID_Categoria, rotulo: c.Nome_Categoria ?? c.ID_Categoria }))
@@ -184,7 +199,11 @@ function FormSaida({
     resolver: zodResolver(esquema),
     defaultValues: {
       valor: registro?.Valor != null ? num(registro.Valor) : undefined,
-      obra: registro?.ID_Obra ?? (obras.opcoes.some((o) => o.valor === ultimaObra) ? ultimaObra : ''),
+      obra: registro
+        ? (registro.ID_Obra ?? SEM_OBRA)
+        : obras.opcoes.some((o) => o.valor === ultimaObra)
+          ? ultimaObra
+          : '',
       categoria: registro?.ID_Categoria ?? '',
       data: registro?.Data_Saida ?? hojeISO(),
       forma: registro?.Forma_Pagamento ?? 'PIX',
@@ -193,6 +212,11 @@ function FormSaida({
       nota: registro?.Numero_Nota_Fiscal ?? '',
     },
   })
+  const obraEscolhida = useWatch({ control, name: 'obra' })
+  const dataAntiga = avisoDataAntiga(useWatch({ control, name: 'data' }))
+  const idCategoria = useWatch({ control, name: 'categoria' })
+  const categoriaEscolhida = categorias.data?.find((c) => c.ID_Categoria === idCategoria)
+
   usePreencherUltimaObra(obras.opcoes, !registro, (id) => {
     if (!getValues('obra')) setValue('obra', id)
   })
@@ -222,7 +246,7 @@ function FormSaida({
       await salvar.mutateAsync({
         id: registro?.ID_Saida,
         dados: {
-          ID_Obra: d.obra,
+          ID_Obra: d.obra === SEM_OBRA ? null : d.obra,
           ID_Categoria: d.categoria,
           Data_Saida: d.data,
           Valor: d.valor,
@@ -243,7 +267,7 @@ function FormSaida({
     // 2) o arquivo antigo só sai depois que o lançamento já aponta para o novo
     if (comprovante.atual && comprovante.atual !== caminhoFinal) await apagarComprovante(comprovante.atual)
 
-    salvarUltimaObra(d.obra)
+    if (d.obra !== SEM_OBRA) salvarUltimaObra(d.obra)
     toast.success(registro ? 'Saída atualizada.' : 'Saída lançada.')
     if (continuar) {
       // mantém obra, data e forma — o caso comum é lançar várias notas do mesmo dia
@@ -295,12 +319,12 @@ function FormSaida({
               {...a11y}
               {...register('obra')}
               vazio={obras.carregando ? 'Carregando obras…' : 'Escolha a obra'}
-              opcoes={obras.opcoes}
+              opcoes={opcoesObra}
             />
           )}
         </Campo>
 
-        <Campo rotulo="Categoria" erro={errors.categoria?.message}>
+        <Campo rotulo="Categoria" erro={errors.categoria?.message} ajuda={destinoDaSaida(categoriaEscolhida, obraEscolhida === SEM_OBRA)}>
           {(a11y) => (
             <SelectNativo
               {...a11y}
@@ -311,7 +335,7 @@ function FormSaida({
           )}
         </Campo>
 
-        <Campo rotulo="Data" erro={errors.data?.message}>
+        <Campo rotulo="Data" erro={errors.data?.message} ajuda={dataAntiga && <span className="font-medium text-aviso">{dataAntiga}</span>}>
           {(a11y) => <Input {...a11y} {...register('data')} type="date" max={hojeISO()} />}
         </Campo>
 

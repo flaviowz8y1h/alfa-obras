@@ -18,7 +18,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useResumoObras } from '@/features/dashboard/useResumoObras'
 import { type EstadoPainel, usePainel } from '@/hooks/use-painel'
-import { usePermissao } from '@/hooks/use-permissao'
+import { usePermissao, usePodeEditarLancamento } from '@/hooks/use-permissao'
 import { FORMAS_PAGAMENTO, comValorAtual } from '@/lib/opcoes'
 import { mensagemDeErro } from '@/utils/erros'
 import { hojeISO, num } from '@/utils/format'
@@ -29,6 +29,7 @@ import {
   useRecebimentos,
   useSalvarRecebimento,
 } from './api'
+import { avisoDataAntiga, dataLancamento } from './data'
 import { EscolhaOpcao, FiltrosLancamento, ListaLancamentos, TotalPeriodo } from './comum'
 import {
   lerUltimaObra,
@@ -43,6 +44,7 @@ export function RecebimentosPage() {
   const filtros = useFiltrosLancamento()
   const consulta = useRecebimentos(filtros)
   const permissao = usePermissao('lancamentos')
+  const podeEditar = usePodeEditarLancamento()
   const p = usePainel<RecebimentoLista>()
   const excluir = useExcluirRecebimento()
   const [busca, setBusca] = useState('')
@@ -79,7 +81,8 @@ export function RecebimentosPage() {
       ) : (
         <ListaLancamentos
           tipo="entrada"
-          podeEditar={permissao.editar}
+          icone="recebimento"
+          podeEditar={podeEditar}
           aoAbrir={p.editar}
           itens={visiveis.map((r) => ({
             id: r.ID_Recebimento,
@@ -136,7 +139,7 @@ export function RecebimentosPage() {
 const esquema = z.object({
   valor: z.number({ error: 'Informe o valor.' }).positive('O valor precisa ser maior que zero.'),
   obra: z.string().min(1, 'Escolha a obra.'),
-  data: z.string().min(1, 'Informe a data.'),
+  data: dataLancamento(),
   forma: z.string().min(1, 'Escolha como foi recebido.'),
   observacao: z.string(),
 })
@@ -179,6 +182,7 @@ function FormRecebimento({
   })
 
   const obraEscolhida = useWatch({ control, name: 'obra' })
+  const dataAntiga = avisoDataAntiga(useWatch({ control, name: 'data' }))
   const situacao = resumo.data?.linhas.find((r) => r.ID_Obra === obraEscolhida)
 
   async function enviar(d: Dados) {
@@ -261,8 +265,8 @@ function FormRecebimento({
           </dl>
         )}
 
-        <Campo rotulo="Data" erro={errors.data?.message}>
-          {(a11y) => <Input {...a11y} {...register('data')} type="date" />}
+        <Campo rotulo="Data" erro={errors.data?.message} ajuda={dataAntiga && <span className="font-medium text-aviso">{dataAntiga}</span>}>
+          {(a11y) => <Input {...a11y} {...register('data')} type="date" max={hojeISO()} />}
         </Campo>
 
         <Campo rotulo="Forma de recebimento" erro={errors.forma?.message}>

@@ -16,12 +16,17 @@ import {
 } from '@/components/cadastro'
 import { Campo } from '@/components/campo'
 import { CampoTelefone, SelectNativo } from '@/components/campos'
+import { CartaoIndicador, FaixaIndicadores } from '@/components/painel'
+import { Moeda, Trena } from '@/components/valores'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { useResumoObras } from '@/features/dashboard/useResumoObras'
+import { useObras } from '@/features/obras/api'
 import { type EstadoPainel, usePainel } from '@/hooks/use-painel'
 import { usePermissao } from '@/hooks/use-permissao'
 import { STATUS_CADASTRO, comValorAtual } from '@/lib/opcoes'
 import { mensagemDeErro } from '@/utils/erros'
+import { formatarMoedaCompacta, formatarPorcento, num } from '@/utils/format'
 import { contem, formatarTelefone, limpar, somenteDigitos } from '@/utils/texto'
 import { type ClienteLista, useClientes, useExcluirCliente, useSalvarCliente } from './api'
 
@@ -46,6 +51,11 @@ export function ClientesPage() {
     [todos, filtro, busca],
   )
   const contar = (s: string) => todos.filter((c) => (c.Status ?? 'Ativo') === s).length
+  const carteira = useCarteiraPorCliente()
+  const totalCarteira = [...carteira.values()].reduce(
+    (t, c) => ({ contratado: t.contratado + c.contratado, recebido: t.recebido + c.recebido, andamento: t.andamento + (c.andamento > 0 ? 1 : 0) }),
+    { contratado: 0, recebido: 0, andamento: 0 },
+  )
 
   return (
     <div className="grid gap-6">
@@ -55,6 +65,35 @@ export function ClientesPage() {
         rotuloNovo="Novo cliente"
         aoCriar={permissao.criar ? p.novo : undefined}
       />
+
+      {todos.length > 0 && (
+        <FaixaIndicadores rotulo="Resumo dos clientes">
+          <CartaoIndicador
+            rotulo="Clientes ativos"
+            valor={contar('Ativo')}
+            detalhe={`${todos.length} no cadastro`}
+          />
+          <CartaoIndicador
+            indice={1}
+            rotulo="Com obra em andamento"
+            valor={totalCarteira.andamento}
+            detalhe="Clientes com pelo menos uma obra rodando"
+          />
+          <CartaoIndicador
+            indice={2}
+            rotulo="Carteira contratada"
+            valor={formatarMoedaCompacta(totalCarteira.contratado)}
+            detalhe="Soma dos contratos de todas as obras"
+          />
+          <CartaoIndicador
+            indice={3}
+            destaque
+            rotulo="A receber"
+            valor={formatarMoedaCompacta(totalCarteira.contratado - totalCarteira.recebido)}
+            detalhe={`${formatarPorcento(totalCarteira.contratado ? totalCarteira.recebido / totalCarteira.contratado : 0)} da carteira já recebido`}
+          />
+        </FaixaIndicadores>
+      )}
 
       <BarraFiltros
         busca={busca}
@@ -109,9 +148,13 @@ export function ClientesPage() {
                     )}
                     <span>
                       <span className="numero">{c.totalObras}</span> {c.totalObras === 1 ? 'obra' : 'obras'}
+                      {(carteira.get(c.ID_Cliente)?.andamento ?? 0) > 0 && (
+                        <> · <span className="numero">{carteira.get(c.ID_Cliente)?.andamento}</span> em andamento</>
+                      )}
                     </span>
                   </span>
                 </span>
+                <CarteiraCliente c={carteira.get(c.ID_Cliente)} nome={c.Nome_Cliente ?? ''} />
                 <SeloStatus status={c.Status} />
                 {permissao.editar && (
                   <ChevronRight
@@ -244,5 +287,41 @@ function FormCliente({
         )}
       </form>
     </PainelFormulario>
+  )
+}
+
+/* ---------------- Carteira por cliente ---------------- */
+
+type Carteira = { contratado: number; recebido: number; andamento: number }
+
+/** Contratado, recebido e obras em andamento de cada cliente. */
+function useCarteiraPorCliente(): Map<string, Carteira> {
+  const obras = useObras()
+  const resumo = useResumoObras()
+  return useMemo(() => {
+    const recebidoPorObra = new Map((resumo.data?.linhas ?? []).map((r) => [r.ID_Obra, num(r.total_recebido)]))
+    const mapa = new Map<string, Carteira>()
+    for (const o of obras.data ?? []) {
+      if (!o.ID_Cliente) continue
+      const c = mapa.get(o.ID_Cliente) ?? { contratado: 0, recebido: 0, andamento: 0 }
+      c.contratado += num(o.Valor_Contratado)
+      c.recebido += recebidoPorObra.get(o.ID_Obra) ?? 0
+      if (o.Status === 'Em Andamento') c.andamento++
+      mapa.set(o.ID_Cliente, c)
+    }
+    return mapa
+  }, [obras.data, resumo.data])
+}
+
+function CarteiraCliente({ c, nome }: { c: Carteira | undefined; nome: string }) {
+  if (!c || c.contratado <= 0) return null
+  return (
+    <span className="hidden w-44 shrink-0 gap-1.5 text-right md:grid">
+      <span className="text-xs text-muted-foreground">
+        Recebido <span className="numero font-semibold text-foreground">{formatarPorcento(c.recebido / c.contratado)}</span> de{' '}
+        <Moeda valor={c.contratado} className="font-semibold text-foreground" />
+      </span>
+      <Trena parte={c.recebido} total={c.contratado} rotulo={`Recebido do cliente ${nome}`} cor="var(--serie-entrada)" className="h-1.5" />
+    </span>
   )
 }

@@ -23,7 +23,7 @@ export function SelectNativo({ opcoes, vazio, className, ...props }: SelectProps
           'h-12 w-full cursor-pointer appearance-none rounded-lg border border-input bg-card pr-10 pl-3.5 text-base transition-colors outline-none md:h-11',
           'focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50',
           'aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20',
-          'disabled:cursor-not-allowed disabled:opacity-50 dark:bg-input/30',
+          'disabled:cursor-not-allowed disabled:opacity-50 dark:bg-muted/60',
           className,
         )}
         {...props}

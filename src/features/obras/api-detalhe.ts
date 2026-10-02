@@ -76,6 +76,8 @@ export type Movimento = {
   valor: number
   /** Para o gráfico de "onde foi o dinheiro". */
   categoria: string
+  /** Saída de categoria que não entra no custo da obra (ex.: compra de equipamento). */
+  foraDoCusto?: boolean
 }
 
 /** Todos os lançamentos da obra, em uma lista só (mais recentes primeiro). */
@@ -110,19 +112,28 @@ export function useExtratoObra(id: string) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('fSaidasObras')
-        .select('ID_Saida, Data_Saida, Valor, Forma_Pagamento, Fornecedor_Local, Descricao, dCategoriaGastos(Nome_Categoria)')
+        .select('ID_Saida, Data_Saida, Valor, Forma_Pagamento, Fornecedor_Local, Descricao, dCategoriaGastos(Nome_Categoria, Impacta_Obra)')
         .eq('ID_Obra', id)
       if (error) throw error
       return data.map((s): Movimento => {
         const categoria = s.dCategoriaGastos?.Nome_Categoria ?? 'Sem categoria'
+        const foraDoCusto = s.dCategoriaGastos?.Impacta_Obra === 'Não'
         return {
           id: s.ID_Saida,
           tipo: 'saida',
           data: s.Data_Saida,
           titulo: s.Descricao || categoria,
-          detalhe: [s.Descricao ? categoria : null, s.Fornecedor_Local, s.Forma_Pagamento].filter(Boolean).join(' · '),
+          detalhe: [
+            s.Descricao ? categoria : null,
+            foraDoCusto ? 'fora do custo da obra' : null,
+            s.Fornecedor_Local,
+            s.Forma_Pagamento,
+          ]
+            .filter(Boolean)
+            .join(' · '),
           valor: num(s.Valor),
           categoria,
+          foraDoCusto,
         }
       })
     },

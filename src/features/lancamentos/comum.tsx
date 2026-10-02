@@ -7,6 +7,8 @@ import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { deslocarMes, formatarData, formatarMoeda, mesAtual, nomeDoMes, num } from '@/utils/format'
 import { type useFiltrosLancamento, useOpcoesObra } from './hooks'
+import { IconeTipo } from './IconeTipo'
+import type { TipoLancamento } from './tipos'
 
 /* ---------------- Filtros: mês + obra ---------------- */
 
@@ -116,14 +118,18 @@ export type ItemLancamento<T> = {
 export function ListaLancamentos<T>({
   itens,
   tipo,
+  icone,
   aoAbrir,
   podeEditar,
   vazio,
 }: {
   itens: readonly ItemLancamento<T>[]
   tipo: 'entrada' | 'saida'
+  /** Ícone do tipo à esquerda de cada item. */
+  icone?: TipoLancamento
   aoAbrir: (registro: T) => void
-  podeEditar: boolean
+  /** Por item: o operacional só edita o que ele mesmo lançou. */
+  podeEditar: (registro: T) => boolean
   vazio: { titulo: string; texto: string; filtrando: boolean; aoLimpar: () => void; acao?: React.ReactNode }
 }) {
   const dias = useMemo(() => {
@@ -154,10 +160,11 @@ export function ListaLancamentos<T>({
                 <li key={i.id}>
                   <button
                     type="button"
-                    onClick={() => podeEditar && aoAbrir(i.registro)}
-                    disabled={!podeEditar}
+                    onClick={() => podeEditar(i.registro) && aoAbrir(i.registro)}
+                    disabled={!podeEditar(i.registro)}
                     className="flex min-h-16 w-full cursor-pointer items-center gap-3 px-4 py-3 text-left transition-colors duration-150 hover:bg-accent/40 focus-visible:bg-accent/60 focus-visible:outline-none disabled:cursor-default"
                   >
+                    {icone && <IconeTipo tipo={icone} />}
                     <span className="min-w-0 flex-1">
                       <span className="flex items-center gap-1.5">
                         <span className="truncate font-semibold">{i.titulo}</span>

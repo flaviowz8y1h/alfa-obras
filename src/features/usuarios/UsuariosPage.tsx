@@ -15,6 +15,8 @@ import {
 } from '@/components/cadastro'
 import { Campo } from '@/components/campo'
 import { SelectNativo } from '@/components/campos'
+import { CartaoIndicador, FaixaIndicadores } from '@/components/painel'
+import { Trena } from '@/components/valores'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { EscolhaOpcao } from '@/features/lancamentos/comum'
@@ -43,6 +45,8 @@ export function UsuariosPage() {
         aoCriar={p.novo}
       />
 
+      {consulta.data && consulta.data.length > 0 && <ResumoUsuarios usuarios={consulta.data} />}
+
       <dl className="grid gap-2 rounded-xl border bg-card p-4 text-sm sm:grid-cols-3">
         {(Object.keys(DESCRICAO_PERFIL) as Perfil[]).map((perfil) => (
           <div key={perfil}>
@@ -68,6 +72,43 @@ export function UsuariosPage() {
 
       <FormUsuario key={p.painel.modo === 'editar' ? p.painel.registro.id : p.painel.modo} estado={p.painel} aoFechar={p.fechar} />
     </div>
+  )
+}
+
+function ResumoUsuarios({ usuarios }: { usuarios: readonly UsuarioEmpresa[] }) {
+  const ativos = usuarios.filter((u) => u.status === 'Ativo')
+  const comMfa = ativos.filter((u) => u.temMfa).length
+  const nuncaEntraram = ativos.filter((u) => !u.ultimoAcesso).length
+  const porPerfil = (Object.keys(PERFIL_ROTULO) as Perfil[])
+    .map((p) => [PERFIL_ROTULO[p], ativos.filter((u) => u.perfil === p).length] as const)
+    .filter(([, n]) => n > 0)
+    .map(([r, n]) => `${n} ${r.toLowerCase()}`)
+    .join(' · ')
+
+  return (
+    <FaixaIndicadores rotulo="Resumo dos acessos">
+      <CartaoIndicador destaque rotulo="Usuários ativos" valor={ativos.length} detalhe={porPerfil || '—'} />
+      <CartaoIndicador
+        indice={1}
+        rotulo="Verificação em 2 etapas"
+        valor={`${comMfa} de ${ativos.length}`}
+        detalhe={comMfa === ativos.length ? 'Todos os ativos protegidos' : 'Peça para ativarem no próximo acesso'}
+      >
+        <Trena parte={comMfa} total={ativos.length} rotulo="Usuários ativos com verificação em 2 etapas" cor="var(--positivo)" />
+      </CartaoIndicador>
+      <CartaoIndicador
+        indice={2}
+        rotulo="Nunca entraram"
+        valor={<span className={cn(nuncaEntraram > 0 && 'text-aviso')}>{nuncaEntraram}</span>}
+        detalhe="Ativos que ainda não fizeram o primeiro acesso"
+      />
+      <CartaoIndicador
+        indice={3}
+        rotulo="Inativos"
+        valor={usuarios.length - ativos.length}
+        detalhe="Sem acesso, histórico preservado"
+      />
+    </FaixaIndicadores>
   )
 }
 

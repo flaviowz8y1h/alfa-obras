@@ -259,21 +259,22 @@ function Cartao({
   return (
     <article
       className={cn(
-        'flex flex-col gap-3 rounded-xl border bg-card p-5',
+        '@container flex min-w-0 flex-col gap-3 rounded-xl border bg-card p-5',
         destaque && 'border-transparent bg-marca text-white dark:bg-card dark:ring-1 dark:ring-ring/40',
       )}
     >
       <h2
         className={cn(
           'text-xs font-semibold tracking-wider text-muted-foreground uppercase',
-          destaque && 'text-white/70 dark:text-muted-foreground',
+          destaque && 'text-dourado',
         )}
       >
         {rotulo}
       </h2>
       <p
         className={cn(
-          'display text-[1.75rem] leading-none font-bold sm:text-3xl',
+          // tamanho acompanha a largura do cartão: o valor nunca vaza pela direita
+          'display text-[clamp(1rem,8cqi,1.875rem)] leading-none font-bold',
           destaque && '[&_.text-negativo]:text-red-300 [&_.text-positivo]:text-green-300',
         )}
       >
@@ -312,7 +313,8 @@ function OndeFoiODinheiro({ id }: { id: string }) {
   const linhas = useMemo(() => {
     const mapa = new Map<string, number>()
     for (const m of movimentos) {
-      if (m.tipo === 'recebimento') continue
+      // mesma regra da vw_resumo_obras: recebimentos e saídas fora do custo não entram
+      if (m.tipo === 'recebimento' || m.foraDoCusto) continue
       mapa.set(m.categoria, (mapa.get(m.categoria) ?? 0) + m.valor)
     }
     return [...mapa.entries()].sort((a, b) => b[1] - a[1])
@@ -379,7 +381,7 @@ function Extrato({ id }: { id: string }) {
     t === 'todos' ? movimentos.length : movimentos.filter((m) => m.tipo === t).length
 
   return (
-    <section aria-labelledby="titulo-extrato" className="grid gap-4">
+    <section aria-labelledby="titulo-extrato" className="grid grid-cols-1 gap-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 id="titulo-extrato" className="text-xl font-bold">
           Extrato da obra

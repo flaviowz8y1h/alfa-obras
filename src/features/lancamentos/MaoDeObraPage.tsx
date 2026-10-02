@@ -18,7 +18,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useTrabalhadores } from '@/features/trabalhadores/api'
 import { type EstadoPainel, usePainel } from '@/hooks/use-painel'
-import { usePermissao } from '@/hooks/use-permissao'
+import { usePermissao, usePodeEditarLancamento } from '@/hooks/use-permissao'
 import { FORMAS_PAGAMENTO, TIPOS_PAGAMENTO_MO, comValorAtual, valorReferencia } from '@/lib/opcoes'
 import { mensagemDeErro } from '@/utils/erros'
 import { cn } from '@/lib/utils'
@@ -42,6 +42,7 @@ import {
   usePagamentosMaoDeObra,
   useSalvarPagamento,
 } from './api'
+import { avisoDataAntiga, dataLancamento } from './data'
 import { EscolhaOpcao, FiltrosLancamento, ListaLancamentos, TotalPeriodo } from './comum'
 import {
   ehContinuar,
@@ -60,6 +61,7 @@ export function MaoDeObraPage() {
   const filtros = useFiltrosLancamento()
   const consulta = usePagamentosMaoDeObra(filtros)
   const permissao = usePermissao('lancamentos')
+  const podeEditar = usePodeEditarLancamento()
   const p = usePainel<PagamentoLista>()
   const excluir = useExcluirPagamento()
   const [busca, setBusca] = useState('')
@@ -96,7 +98,8 @@ export function MaoDeObraPage() {
       ) : (
         <ListaLancamentos
           tipo="saida"
-          podeEditar={permissao.editar}
+          icone="mao_de_obra"
+          podeEditar={podeEditar}
           aoAbrir={p.editar}
           itens={visiveis.map((m) => ({
             id: m.ID_Pagamento,
@@ -173,7 +176,7 @@ const esquema = z
     dias: z.number().nullable(),
     diaria: z.number().nullable(),
     valor: z.number().nullable(),
-    data: z.string().min(1, 'Informe a data do pagamento.'),
+    data: dataLancamento('Informe a data do pagamento.'),
     forma: z.string().min(1, 'Escolha como foi pago.'),
     observacao: z.string(),
   })
@@ -254,6 +257,7 @@ function FormPagamento({
     control,
     name: ['tipo', 'dias', 'diaria', 'trabalhador'],
   })
+  const dataAntiga = avisoDataAntiga(useWatch({ control, name: 'data' }))
   const diariaMode = ehDiaria(tipo)
   const totalDiarias = centavos((dias ?? 0) * (diaria ?? 0))
   const trabalhador = lista.find((t) => t.ID_Trabalhador === idTrabalhador)
@@ -505,8 +509,8 @@ function FormPagamento({
           </Campo>
         )}
 
-        <Campo rotulo="Data do pagamento" erro={errors.data?.message}>
-          {(a11y) => <Input {...a11y} {...register('data')} type="date" />}
+        <Campo rotulo="Data do pagamento" erro={errors.data?.message} ajuda={dataAntiga && <span className="font-medium text-aviso">{dataAntiga}</span>}>
+          {(a11y) => <Input {...a11y} {...register('data')} type="date" max={hojeISO()} />}
         </Campo>
 
         <Campo rotulo="Forma de pagamento" erro={errors.forma?.message}>

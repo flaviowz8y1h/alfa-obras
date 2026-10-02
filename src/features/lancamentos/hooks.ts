@@ -70,9 +70,10 @@ export function useNovoPelaUrl(abrir: () => void) {
   const [params, setParams] = useSearchParams()
   const pedirNovo = params.get('novo') === '1'
   const obra = params.get('obra')
-  useEffect(() => {
-    if (!pedirNovo) return
-    if (obra) salvarUltimaObra(obra)
+  // abrir e setParams mudam de identidade a cada render; como efeito de evento,
+  // o efeito só roda quando ?novo=1 aparece, sem loop até a URL ser limpa.
+  const aoPedirNovo = useEffectEvent((idObra: string | null) => {
+    if (idObra) salvarUltimaObra(idObra)
     abrir()
     setParams(
       (p) => {
@@ -82,7 +83,10 @@ export function useNovoPelaUrl(abrir: () => void) {
       },
       { replace: true },
     )
-  }, [pedirNovo, obra, abrir, setParams])
+  })
+  useEffect(() => {
+    if (pedirNovo) aoPedirNovo(obra)
+  }, [pedirNovo, obra])
 }
 
 /* ---------------- Filtros: mês + obra ---------------- */

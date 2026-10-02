@@ -1,5 +1,6 @@
 import {
   addMonths,
+  differenceInCalendarDays,
   eachDayOfInterval,
   endOfMonth,
   format,
@@ -57,6 +58,13 @@ export function hojePorExtenso(): string {
 /** Hoje no fuso local, 'yyyy-MM-dd' (toISOString usaria UTC e viraria o dia à noite). */
 export function hojeISO(): string {
   return format(new Date(), 'yyyy-MM-dd')
+}
+
+/** Dias corridos de hoje até a data (negativo se já passou). Null se não houver data. */
+export function diasAte(data: string | null | undefined): number | null {
+  if (!data) return null
+  const d = parseISO(data)
+  return isValid(d) ? differenceInCalendarDays(d, new Date()) : null
 }
 
 export function paraISO(data: Date): string {

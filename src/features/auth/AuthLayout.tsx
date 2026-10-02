@@ -1,4 +1,4 @@
-import { Monograma, PlacaLogo } from '@/components/marca'
+import { PlacaLogo } from '@/components/marca'
 
 type Props = {
   titulo: string
@@ -24,10 +24,14 @@ export function AuthLayout({ titulo, descricao, children, rodape }: Props) {
             backgroundSize: '48px 48px',
           }}
         />
-        <div className="relative flex items-center gap-3">
-          <Monograma className="size-11 text-white" />
-          <span className="display text-lg font-bold tracking-wide uppercase">Alfa</span>
-        </div>
+        <img
+          src="/logo-alfa-clara.webp"
+          alt="Alfa Construções — Engenharia de alto padrão"
+          width={1024}
+          height={1022}
+          className="relative h-auto w-44 xl:w-52"
+          decoding="async"
+        />
         <div className="relative max-w-md">
           <p className="display text-4xl leading-[1.05] font-extrabold xl:text-5xl">
             Cada real da obra, no lugar certo.
@@ -41,7 +45,7 @@ export function AuthLayout({ titulo, descricao, children, rodape }: Props) {
 
       <main className="flex flex-col items-center justify-center px-4 py-10 sm:px-8">
         <div className="w-full max-w-sm animate-entrar">
-          <PlacaLogo className="mx-auto mb-8 w-56 lg:hidden" />
+          <PlacaLogo className="mx-auto mb-8 w-44 lg:hidden" />
           <h1 className="text-2xl font-extrabold sm:text-3xl">{titulo}</h1>
           {descricao && <p className="mt-2 text-base text-muted-foreground">{descricao}</p>}
           <div className="mt-8">{children}</div>

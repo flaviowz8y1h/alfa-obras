@@ -1,5 +1,13 @@
-import { Building2, ChevronRight, RefreshCw, TriangleAlert } from 'lucide-react'
+import { Building2, ChevronRight, Plus, RefreshCw, TriangleAlert } from 'lucide-react'
 import { Link } from 'react-router'
+import {
+  CartaoIndicador,
+  FaixaIndicadores,
+  ItemAlerta,
+  Painel,
+  SemAlertas,
+  TrenaDupla,
+} from '@/components/painel'
 import { Moeda, Saldo, Trena } from '@/components/valores'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button, buttonVariants } from '@/components/ui/button'
@@ -14,14 +22,29 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { useUsuarioLogado } from '@/features/auth/auth-context'
+import { IconeTipo } from '@/features/lancamentos/IconeTipo'
+import { alertasDasObras, situacaoEntrega } from '@/features/obras/alertas'
+import { GraficoFluxo } from '@/features/obras/GraficoFluxo'
+import { usePermissao } from '@/hooks/use-permissao'
 import { cn } from '@/lib/utils'
 import type { ResumoObra } from '@/types/app'
 import { mensagemDeErro } from '@/utils/erros'
-import { formatarData, formatarMoeda, formatarPorcento, hojePorExtenso } from '@/utils/format'
+import {
+  formatarData,
+  formatarMoeda,
+  formatarMoedaCompacta,
+  formatarPorcento,
+  hojePorExtenso,
+  num,
+} from '@/utils/format'
+import { useFluxoEmpresa, useSaidasForaDasObras, useUltimosLancamentos } from './api'
 import { type Totais, useResumoObras } from './useResumoObras'
+
+const MAX_ALERTAS = 4
 
 export function DashboardPage() {
   const { usuario } = useUsuarioLogado()
+  const podeLancar = usePermissao('lancamentos').criar
   const consulta = useResumoObras()
   const primeiroNome = usuario.Nome?.trim().split(/\s+/)[0]
 
@@ -35,16 +58,20 @@ export function DashboardPage() {
           <h1 className="mt-1 text-3xl font-extrabold sm:text-4xl">
             {primeiroNome ? `Olá, ${primeiroNome}` : 'Visão geral'}
           </h1>
+          {consulta.data && (
+            <p className="mt-1 text-sm text-muted-foreground">
+              <span className="numero font-semibold text-foreground">{consulta.data.totais.emAndamento}</span>{' '}
+              em andamento de{' '}
+              <span className="numero font-semibold text-foreground">{consulta.data.totais.obras}</span>{' '}
+              {consulta.data.totais.obras === 1 ? 'obra' : 'obras'}
+            </p>
+          )}
         </div>
-        {consulta.data && (
-          <p className="text-sm text-muted-foreground">
-            <span className="numero font-semibold text-foreground">
-              {consulta.data.totais.emAndamento}
-            </span>{' '}
-            em andamento de{' '}
-            <span className="numero font-semibold text-foreground">{consulta.data.totais.obras}</span>{' '}
-            {consulta.data.totais.obras === 1 ? 'obra' : 'obras'}
-          </p>
+        {podeLancar && (
+          <Link to="/lancamentos" className={buttonVariants({ className: 'hidden sm:inline-flex' })}>
+            <Plus aria-hidden="true" />
+            Novo lançamento
+          </Link>
         )}
       </header>
 
@@ -67,7 +94,15 @@ export function DashboardPage() {
       ) : (
         <>
           <CardsTotais totais={consulta.data.totais} />
-          <TabelaObras linhas={consulta.data.linhas} totais={consulta.data.totais} />
+          <div className="grid gap-4 xl:grid-cols-[1.7fr_1fr]">
+            <PainelFluxo />
+            <PainelAtencao linhas={consulta.data.linhas} />
+          </div>
+          {/* a tabela precisa de ~670px: só divide a linha em telas bem largas */}
+          <div className="grid grid-cols-1 gap-4 2xl:grid-cols-[1.7fr_1fr]">
+            <TabelaObras linhas={consulta.data.linhas} totais={consulta.data.totais} />
+            <PainelUltimos />
+          </div>
         </>
       )}
     </div>
@@ -77,92 +112,177 @@ export function DashboardPage() {
 /* ---------------- Cards de totais ---------------- */
 
 function CardsTotais({ totais: t }: { totais: Totais }) {
-  const cards = [
-    {
-      rotulo: 'Contratado',
-      valor: <Moeda valor={t.contratado} />,
-      detalhe: `${t.obras} ${t.obras === 1 ? 'obra' : 'obras'} na carteira`,
-    },
-    {
-      rotulo: 'Recebido',
-      valor: <Moeda valor={t.recebido} />,
-      trena: <Trena parte={t.recebido} total={t.contratado} rotulo="Recebido sobre o contratado" />,
-      detalhe: (
-        <>
-          {formatarPorcento(t.contratado ? t.recebido / t.contratado : 0)} do contratado · faltam{' '}
-          <span className="numero">{formatarMoeda(t.aReceber)}</span>
-        </>
-      ),
-    },
-    {
-      rotulo: 'Custo',
-      valor: <Moeda valor={t.custo} />,
-      trena: (
-        <Trena
-          parte={t.custo}
-          total={t.contratado}
-          rotulo="Custo sobre o contratado"
-          cor="var(--chart-4)"
-        />
-      ),
-      detalhe: (
-        <>
-          Materiais <span className="numero">{formatarMoeda(t.materiais)}</span> · Mão de obra{' '}
-          <span className="numero">{formatarMoeda(t.maoDeObra)}</span>
-        </>
-      ),
-    },
-    {
-      rotulo: 'Saldo em caixa',
-      valor: <Saldo valor={t.saldo} />,
-      detalhe: (
-        <>
-          Margem prevista <span className="numero">{formatarMoeda(t.margemPrevista)}</span>
-        </>
-      ),
-      destaque: true,
-    },
-  ]
-
+  // o caixa da empresa também paga o que não é de nenhuma obra (equipamentos, despesas gerais)
+  const fora = useSaidasForaDasObras().data ?? 0
   return (
-    <section aria-label="Totais da empresa" className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-      {cards.map((c, i) => (
-        <article
-          key={c.rotulo}
-          style={{ animationDelay: `${i * 50}ms` }}
-          className={cn(
-            'flex animate-entrar flex-col gap-3 rounded-xl border bg-card p-5',
-            c.destaque && 'border-transparent bg-marca text-white dark:bg-card dark:ring-1 dark:ring-ring/40',
-          )}
-        >
-          <h2
-            className={cn(
-              'text-xs font-semibold tracking-wider text-muted-foreground uppercase',
-              c.destaque && 'text-white/70 dark:text-muted-foreground',
+    <FaixaIndicadores rotulo="Totais da empresa" className="lg:grid-cols-3 xl:grid-cols-3">
+      <CartaoIndicador
+        destaque
+        grande
+        rotulo="Saldo em caixa"
+        valor={<Saldo valor={t.saldo - fora} />}
+        detalhe={
+          <>
+            Margem prevista da carteira <span className="numero font-semibold">{formatarMoeda(t.margemPrevista)}</span>
+            {fora > 0 && (
+              <>
+                {' · '}inclui <span className="numero font-semibold">{formatarMoeda(fora)}</span> de equipamentos e despesas
+                fora das obras
+              </>
             )}
-          >
-            {c.rotulo}
-          </h2>
-          <p
-            className={cn(
-              'display text-[1.75rem] leading-none font-bold sm:text-3xl',
-              // saldo no card marinho: cores claras para manter contraste
-              c.destaque && '[&_.text-negativo]:text-red-300 [&_.text-positivo]:text-green-300',
-            )}
-          >
-            {c.valor}
-          </p>
-          {c.trena}
-          <p className={cn('text-sm text-muted-foreground', c.destaque && 'text-white/75 dark:text-muted-foreground')}>
-            {c.detalhe}
-          </p>
-        </article>
-      ))}
-    </section>
+          </>
+        }
+        className="sm:col-span-2 lg:col-span-3"
+      >
+        <p className="flex flex-wrap gap-x-5 gap-y-1 text-sm text-white/75 dark:text-muted-foreground">
+          <span>
+            Entrou <span className="numero font-semibold text-white dark:text-foreground">{formatarMoedaCompacta(t.recebido)}</span>
+          </span>
+          <span>
+            Saiu <span className="numero font-semibold text-white dark:text-foreground">{formatarMoedaCompacta(t.custo + fora)}</span>
+          </span>
+        </p>
+      </CartaoIndicador>
+      <CartaoIndicador
+        indice={1}
+        rotulo="Contratado"
+        valor={<Moeda valor={t.contratado} />}
+        detalhe={`${t.obras} ${t.obras === 1 ? 'obra' : 'obras'} · ${t.emAndamento} em andamento`}
+      />
+      <CartaoIndicador
+        indice={2}
+        rotulo="Recebido"
+        valor={<Moeda valor={t.recebido} />}
+        detalhe={
+          <>
+            {formatarPorcento(t.contratado ? t.recebido / t.contratado : 0)} do contratado · faltam{' '}
+            <span className="numero">{formatarMoeda(t.aReceber)}</span>
+          </>
+        }
+      >
+        <Trena parte={t.recebido} total={t.contratado} rotulo="Recebido sobre o contratado" cor="var(--serie-entrada)" />
+      </CartaoIndicador>
+      <CartaoIndicador
+        indice={3}
+        rotulo="Custo"
+        valor={<Moeda valor={t.custo} />}
+        detalhe={
+          <>
+            Materiais <span className="numero">{formatarMoeda(t.materiais)}</span> · Mão de obra{' '}
+            <span className="numero">{formatarMoeda(t.maoDeObra)}</span>
+          </>
+        }
+      >
+        <Trena parte={t.custo} total={t.contratado} rotulo="Custo sobre o contratado" cor="var(--serie-saida)" />
+      </CartaoIndicador>
+    </FaixaIndicadores>
   )
 }
 
-/* ---------------- Tabela por obra ---------------- */
+/* ---------------- Fluxo de caixa ---------------- */
+
+function PainelFluxo() {
+  const fluxo = useFluxoEmpresa()
+  return (
+    <Painel id="titulo-fluxo" titulo="Fluxo de caixa" descricao="Últimos 6 meses, todas as obras">
+      {fluxo.isPending ? (
+        <Skeleton className="h-60 rounded-lg" />
+      ) : fluxo.isError ? (
+        <p className="text-sm text-destructive">{mensagemDeErro(fluxo.error)}</p>
+      ) : fluxo.data.length === 0 ? (
+        <p className="py-10 text-center text-sm text-muted-foreground">
+          Ainda não há lançamentos para desenhar o fluxo.
+        </p>
+      ) : (
+        <GraficoFluxo pontos={fluxo.data} maxMeses={6} />
+      )}
+    </Painel>
+  )
+}
+
+/* ---------------- Precisa de atenção ---------------- */
+
+function PainelAtencao({ linhas }: { linhas: readonly ResumoObra[] }) {
+  const alertas = alertasDasObras(linhas)
+  const visiveis = alertas.slice(0, MAX_ALERTAS)
+  return (
+    <Painel
+      id="titulo-atencao"
+      titulo={
+        <span className="flex items-center gap-2">
+          Precisa de atenção
+          {alertas.length > 0 && (
+            <span className="numero grid h-6 min-w-6 place-items-center rounded-full bg-destructive px-2 text-xs font-bold text-white">
+              {alertas.length}
+            </span>
+          )}
+        </span>
+      }
+    >
+      {visiveis.length === 0 ? (
+        <SemAlertas texto="Nenhuma obra em andamento com custo alto, saldo negativo ou prazo apertado." />
+      ) : (
+        <ul>
+          {visiveis.map((a) => (
+            <ItemAlerta key={a.id} nivel={a.nivel} titulo={a.titulo} texto={a.texto} acao={a.acao} />
+          ))}
+        </ul>
+      )}
+      {alertas.length > MAX_ALERTAS && (
+        <Link to="/obras" className={buttonVariants({ variant: 'ghost', size: 'sm', className: 'mt-3 w-full' })}>
+          Mais {alertas.length - MAX_ALERTAS} em Obras
+        </Link>
+      )}
+    </Painel>
+  )
+}
+
+/* ---------------- Últimos lançamentos ---------------- */
+
+function PainelUltimos() {
+  const ultimos = useUltimosLancamentos()
+  return (
+    <Painel
+      id="titulo-ultimos"
+      titulo="Últimos lançamentos"
+      acao={
+        <Link to="/lancamentos" className={buttonVariants({ variant: 'ghost', size: 'sm' })}>
+          Extrato
+          <ChevronRight aria-hidden="true" />
+        </Link>
+      }
+    >
+      {ultimos.carregando ? (
+        <div className="grid gap-3" role="status" aria-label="Carregando lançamentos">
+          {Array.from({ length: 4 }, (_, i) => (
+            <Skeleton key={i} className="h-12 rounded-lg" />
+          ))}
+        </div>
+      ) : ultimos.erro ? (
+        <p className="text-sm text-destructive">{mensagemDeErro(ultimos.erro)}</p>
+      ) : ultimos.itens.length === 0 ? (
+        <p className="py-6 text-center text-sm text-muted-foreground">Nenhum lançamento registrado ainda.</p>
+      ) : (
+        <ul className="divide-y">
+          {ultimos.itens.map((l) => (
+            <li key={`${l.tipo}-${l.id}`} className="flex items-center gap-3 py-3 first:pt-0 last:pb-0">
+              <IconeTipo tipo={l.tipo} className="size-9" />
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-medium">{l.titulo}</p>
+                <p className="truncate text-xs text-muted-foreground">
+                  {[l.obra, formatarData(l.data, 'dd/MM')].filter(Boolean).join(' · ')}
+                </p>
+              </div>
+              <Saldo valor={l.valor} comIcone={false} className={cn('text-sm font-semibold', l.valor < 0 && 'text-foreground')} />
+            </li>
+          ))}
+        </ul>
+      )}
+    </Painel>
+  )
+}
+
+/* ---------------- Obras em andamento ---------------- */
 
 function StatusObra({ status }: { status: string | null }) {
   const s = status ?? 'Sem status'
@@ -183,9 +303,30 @@ function StatusObra({ status }: { status: string | null }) {
   )
 }
 
-function TabelaObras({ linhas, totais }: { linhas: readonly ResumoObra[]; totais: Totais }) {
+function Entrega({ o }: { o: ResumoObra }) {
+  const e = situacaoEntrega(o.Status, o.Previsao_Termino)
   return (
-    <section aria-labelledby="titulo-obras" className="grid gap-4">
+    <span
+      className={cn(
+        'text-xs',
+        e.nivel === 'critico' ? 'font-semibold text-negativo' : e.nivel === 'aviso' ? 'font-semibold text-aviso' : 'text-muted-foreground',
+      )}
+    >
+      {e.texto}
+    </span>
+  )
+}
+
+function TabelaObras({ linhas, totais }: { linhas: readonly ResumoObra[]; totais: Totais }) {
+  // em andamento primeiro; dentro de cada grupo, a entrega mais próxima antes
+  const ordenadas = [...linhas].sort(
+    (a, b) =>
+      Number(b.Status === 'Em Andamento') - Number(a.Status === 'Em Andamento') ||
+      (a.Previsao_Termino ?? '9999').localeCompare(b.Previsao_Termino ?? '9999'),
+  )
+
+  return (
+    <section aria-labelledby="titulo-obras" className="grid min-w-0 gap-4 self-start">
       <div className="flex items-center justify-between gap-4">
         <h2 id="titulo-obras" className="text-xl font-bold">
           Por obra
@@ -198,7 +339,7 @@ function TabelaObras({ linhas, totais }: { linhas: readonly ResumoObra[]; totais
 
       {/* Celular: uma ficha por obra */}
       <ul className="grid gap-3 md:hidden">
-        {linhas.map((o) => (
+        {ordenadas.map((o) => (
           <li key={o.ID_Obra} className="grid gap-3 rounded-xl border bg-card p-4">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
@@ -210,19 +351,19 @@ function TabelaObras({ linhas, totais }: { linhas: readonly ResumoObra[]; totais
                 </Link>
                 <p className="truncate text-sm text-muted-foreground">{o.Nome_Cliente ?? '—'}</p>
               </div>
-              <StatusObra status={o.Status} />
+              <Saldo valor={o.saldo_caixa} comIcone={false} className="shrink-0 font-bold" />
             </div>
-            <Trena
-              parte={o.total_recebido ?? 0}
-              total={o.valor_contratado ?? 0}
-              rotulo={`Recebido da obra ${o.Nome_Obra ?? ''}`}
+            <TrenaDupla
+              compacta
+              nome={o.Nome_Obra ?? ''}
+              contratado={num(o.valor_contratado)}
+              recebido={num(o.total_recebido)}
+              custo={num(o.custo_total)}
             />
-            <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
-              <Linha rotulo="Contratado" valor={<Moeda valor={o.valor_contratado} />} />
-              <Linha rotulo="Recebido" valor={<Moeda valor={o.total_recebido} />} />
-              <Linha rotulo="Custo" valor={<Moeda valor={o.custo_total} />} />
-              <Linha rotulo="Saldo" valor={<Saldo valor={o.saldo_caixa} comIcone={false} />} forte />
-            </dl>
+            <div className="flex items-center justify-between gap-2">
+              <StatusObra status={o.Status} />
+              <Entrega o={o} />
+            </div>
           </li>
         ))}
       </ul>
@@ -233,16 +374,14 @@ function TabelaObras({ linhas, totais }: { linhas: readonly ResumoObra[]; totais
           <TableHeader>
             <TableRow className="bg-muted/60 hover:bg-muted/60">
               <TableHead className="h-11 pl-5">Obra</TableHead>
-              <TableHead>Status</TableHead>
+              <TableHead className="w-56">Sobre o contratado</TableHead>
               <TableHead className="text-right">Contratado</TableHead>
-              <TableHead className="text-right">Recebido</TableHead>
-              <TableHead className="text-right">Custo</TableHead>
               <TableHead className="text-right">Saldo em caixa</TableHead>
               <TableHead className="pr-5 text-right">Margem prevista</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {linhas.map((o) => (
+            {ordenadas.map((o) => (
               <TableRow key={o.ID_Obra}>
                 <TableCell className="max-w-64 py-3 pl-5">
                   <Link
@@ -251,28 +390,23 @@ function TabelaObras({ linhas, totais }: { linhas: readonly ResumoObra[]; totais
                   >
                     {o.Nome_Obra ?? 'Obra sem nome'}
                   </Link>
-                  <p className="truncate text-xs text-muted-foreground">
-                    {o.Nome_Cliente ?? '—'}
-                    {o.Previsao_Termino && ` · prev. ${formatarData(o.Previsao_Termino)}`}
-                  </p>
+                  <p className="truncate text-xs text-muted-foreground">{o.Nome_Cliente ?? '—'}</p>
+                  <div className="mt-1.5 flex flex-wrap items-center gap-2">
+                    <StatusObra status={o.Status} />
+                    <Entrega o={o} />
+                  </div>
                 </TableCell>
                 <TableCell>
-                  <StatusObra status={o.Status} />
-                </TableCell>
-                <TableCell className="text-right">
-                  <Moeda valor={o.valor_contratado} />
-                </TableCell>
-                <TableCell className="text-right">
-                  <Moeda valor={o.total_recebido} />
-                  <Trena
-                    parte={o.total_recebido ?? 0}
-                    total={o.valor_contratado ?? 0}
-                    rotulo={`Recebido da obra ${o.Nome_Obra ?? ''}`}
-                    className="mt-1.5 ml-auto h-1 w-24"
+                  <TrenaDupla
+                    compacta
+                    nome={o.Nome_Obra ?? ''}
+                    contratado={num(o.valor_contratado)}
+                    recebido={num(o.total_recebido)}
+                    custo={num(o.custo_total)}
                   />
                 </TableCell>
                 <TableCell className="text-right">
-                  <Moeda valor={o.custo_total} />
+                  <Moeda valor={o.valor_contratado} />
                 </TableCell>
                 <TableCell className="text-right font-semibold">
                   <Saldo valor={o.saldo_caixa} comIcone={false} />
@@ -292,12 +426,6 @@ function TabelaObras({ linhas, totais }: { linhas: readonly ResumoObra[]; totais
                 <Moeda valor={totais.contratado} />
               </TableCell>
               <TableCell className="text-right">
-                <Moeda valor={totais.recebido} />
-              </TableCell>
-              <TableCell className="text-right">
-                <Moeda valor={totais.custo} />
-              </TableCell>
-              <TableCell className="text-right">
                 <Saldo valor={totais.saldo} comIcone={false} />
               </TableCell>
               <TableCell className="pr-5 text-right">
@@ -308,15 +436,6 @@ function TabelaObras({ linhas, totais }: { linhas: readonly ResumoObra[]; totais
         </Table>
       </div>
     </section>
-  )
-}
-
-function Linha({ rotulo, valor, forte }: { rotulo: string; valor: React.ReactNode; forte?: boolean }) {
-  return (
-    <div>
-      <dt className="text-xs text-muted-foreground">{rotulo}</dt>
-      <dd className={cn('text-[0.9375rem]', forte && 'font-bold')}>{valor}</dd>
-    </div>
   )
 }
 
@@ -345,7 +464,10 @@ function EsqueletoDashboard() {
           <Skeleton key={i} className="h-36 rounded-xl" />
         ))}
       </div>
-      <Skeleton className="h-72 rounded-xl" />
+      <div className="grid gap-4 xl:grid-cols-[1.7fr_1fr]">
+        <Skeleton className="h-80 rounded-xl" />
+        <Skeleton className="h-80 rounded-xl" />
+      </div>
     </div>
   )
 }

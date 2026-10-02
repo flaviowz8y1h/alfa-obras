@@ -32,6 +32,7 @@ import type { Trabalhador } from '@/types/app'
 import { mensagemDeErro } from '@/utils/erros'
 import { contem, limpar } from '@/utils/texto'
 import { useExcluirTrabalhador, useSalvarTrabalhador, useTrabalhadores } from './api'
+import { PainelEquipe, SeloVinculo } from './SemanaEquipe'
 
 type Filtro = 'Ativo' | 'Inativo' | 'todos'
 
@@ -68,6 +69,10 @@ export function TrabalhadoresPage() {
         rotuloNovo="Novo trabalhador"
         aoCriar={permissao.criar ? p.novo : undefined}
       />
+
+      {consulta.data && consulta.data.length > 0 && <PainelEquipe trabalhadores={consulta.data} />}
+
+      <h2 className="-mb-2 text-xl font-bold">Cadastro da equipe</h2>
 
       <BarraFiltros
         busca={busca}
@@ -122,8 +127,12 @@ export function TrabalhadoresPage() {
                 </span>
                 {(t.Valor_Diaria_Padrao != null || t.Tipo_Vinc_Contrato) && (
                   <span className="hidden text-right sm:block">
-                    <span className="block text-xs text-muted-foreground">
-                      {t.Tipo_Vinc_Contrato ?? 'Valor de referência'}
+                    <span className="mb-1 block">
+                      {t.Tipo_Vinc_Contrato ? (
+                        <SeloVinculo vinculo={t.Tipo_Vinc_Contrato} />
+                      ) : (
+                        <span className="text-xs text-muted-foreground">Valor de referência</span>
+                      )}
                     </span>
                     {t.Valor_Diaria_Padrao != null && (
                       <>

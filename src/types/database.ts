@@ -557,7 +557,7 @@ export type Database = {
           Fornecedor_Local: string | null
           ID_Categoria: string
           ID_Empresa: string
-          ID_Obra: string
+          ID_Obra: string | null
           ID_Saida: string
           Numero_Nota_Fiscal: string | null
           Valor: number | null
@@ -574,7 +574,7 @@ export type Database = {
           Fornecedor_Local?: string | null
           ID_Categoria: string
           ID_Empresa: string
-          ID_Obra: string
+          ID_Obra?: string | null
           ID_Saida: string
           Numero_Nota_Fiscal?: string | null
           Valor?: number | null
@@ -591,7 +591,7 @@ export type Database = {
           Fornecedor_Local?: string | null
           ID_Categoria?: string
           ID_Empresa?: string
-          ID_Obra?: string
+          ID_Obra?: string | null
           ID_Saida?: string
           Numero_Nota_Fiscal?: string | null
           Valor?: number | null

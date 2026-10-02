@@ -16,14 +16,23 @@ import {
 } from '@/components/cadastro'
 import { Campo } from '@/components/campo'
 import { SelectNativo } from '@/components/campos'
+import { CartaoIndicador, FaixaIndicadores } from '@/components/painel'
+import { Moeda, Trena } from '@/components/valores'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { type EstadoPainel, usePainel } from '@/hooks/use-painel'
 import { usePermissao } from '@/hooks/use-permissao'
 import { GRUPOS_DRE, SIM_NAO, STATUS_CADASTRO, TIPOS_CUSTO, comValorAtual } from '@/lib/opcoes'
 import { mensagemDeErro } from '@/utils/erros'
+import { formatarMoedaCompacta, formatarPorcento } from '@/utils/format'
 import { contem, limpar } from '@/utils/texto'
-import { type CategoriaLista, useCategorias, useExcluirCategoria, useSalvarCategoria } from './api'
+import {
+  type CategoriaLista,
+  useCategorias,
+  useExcluirCategoria,
+  useGastoPorCategoria,
+  useSalvarCategoria,
+} from './api'
 
 type Filtro = 'Ativo' | 'Inativo' | 'todos'
 
@@ -37,6 +46,11 @@ export function CategoriasPage() {
 
   const todos = useMemo(() => consulta.data ?? [], [consulta.data])
   const contar = (s: string) => todos.filter((c) => (c.Status ?? 'Ativo') === s).length
+  const gasto = useGastoPorCategoria()
+  const gastoDe = (id: string) => gasto.data?.get(id) ?? 0
+  const gastoTotal = [...(gasto.data?.values() ?? [])].reduce((a, b) => a + b, 0)
+  const maior = todos.reduce<CategoriaLista | null>((m, c) => (!m || gastoDe(c.ID_Categoria) > gastoDe(m.ID_Categoria) ? c : m), null)
+  const semUso = todos.filter((c) => (c.Status ?? 'Ativo') === 'Ativo' && c.totalSaidas === 0).length
 
   // agrupadas pelo grupo do DRE, na ordem da lista padrão
   const grupos = useMemo(() => {
@@ -73,6 +87,34 @@ export function CategoriasPage() {
         </p>
       )}
 
+      {todos.length > 0 && (
+        <FaixaIndicadores rotulo="Resumo das categorias">
+          <CartaoIndicador
+            destaque
+            rotulo="Gasto classificado"
+            valor={gasto.isPending ? '…' : formatarMoedaCompacta(gastoTotal)}
+            detalhe="Todas as saídas, de todas as obras"
+          />
+          <CartaoIndicador
+            indice={1}
+            rotulo="Maior categoria"
+            valor={maior && gastoDe(maior.ID_Categoria) > 0 ? formatarMoedaCompacta(gastoDe(maior.ID_Categoria)) : '—'}
+            detalhe={
+              maior && gastoDe(maior.ID_Categoria) > 0
+                ? `${maior.Nome_Categoria} · ${formatarPorcento(gastoDe(maior.ID_Categoria) / (gastoTotal || 1))} do total`
+                : 'Nenhuma saída lançada ainda'
+            }
+          />
+          <CartaoIndicador indice={2} rotulo="Categorias ativas" valor={contar('Ativo')} detalhe={`${todos.length} no cadastro`} />
+          <CartaoIndicador
+            indice={3}
+            rotulo="Ativas sem uso"
+            valor={semUso}
+            detalhe="Nenhuma saída lançada nelas até agora"
+          />
+        </FaixaIndicadores>
+      )}
+
       <BarraFiltros
         busca={busca}
         aoBuscar={setBusca}
@@ -103,17 +145,22 @@ export function CategoriasPage() {
           acao={permissao.criar && <Button onClick={p.novo}>Cadastrar categoria</Button>}
         />
       ) : (
-        <div className="grid gap-6">
+        <div className="grid grid-cols-1 gap-6">
           {grupos.map(([grupo, itens]) => (
-            <section key={grupo} aria-labelledby={`grupo-${grupo}`} className="grid gap-2">
+            <section key={grupo} aria-labelledby={`grupo-${grupo}`} className="grid grid-cols-1 gap-2">
               <h2
                 id={`grupo-${grupo}`}
                 className="flex items-baseline gap-2 text-xs font-semibold tracking-wider text-muted-foreground uppercase"
               >
                 {grupo}
                 <span className="numero font-normal">{itens.length}</span>
+                {gastoTotal > 0 && (
+                  <span className="numero ml-auto font-semibold normal-case">
+                    {formatarMoedaCompacta(itens.reduce((t, c) => t + gastoDe(c.ID_Categoria), 0))}
+                  </span>
+                )}
               </h2>
-              <ul className="grid gap-2">
+              <ul className="grid grid-cols-1 gap-2">
                 {itens.map((c) => (
                   <li key={c.ID_Categoria}>
                     <button
@@ -136,6 +183,21 @@ export function CategoriasPage() {
                             .join(' · ')}
                         </span>
                       </span>
+                      {gastoDe(c.ID_Categoria) > 0 && (
+                        <span className="hidden w-40 shrink-0 gap-1.5 text-right sm:grid">
+                          <span className="text-xs text-muted-foreground">
+                            <Moeda valor={gastoDe(c.ID_Categoria)} className="font-semibold text-foreground" /> ·{' '}
+                            {formatarPorcento(gastoDe(c.ID_Categoria) / (gastoTotal || 1))}
+                          </span>
+                          <Trena
+                            parte={gastoDe(c.ID_Categoria)}
+                            total={gastoTotal}
+                            rotulo={`Participação de ${c.Nome_Categoria ?? 'categoria'} no gasto total`}
+                            cor="var(--serie-saida)"
+                            className="h-1.5"
+                          />
+                        </span>
+                      )}
                       <SeloStatus status={c.Status} />
                       {permissao.editar && (
                         <ChevronRight

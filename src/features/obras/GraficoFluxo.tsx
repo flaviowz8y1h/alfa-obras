@@ -14,7 +14,7 @@ const ALTURA = 220
 const MARGEM = { topo: 12, direita: 8, base: 28, esquerda: 56 }
 
 /** Preenche meses sem movimento entre o primeiro e o último (a view só traz meses com lançamento). */
-function completarMeses(pontos: readonly PontoFluxo[]): PontoFluxo[] {
+function completarMeses(pontos: readonly PontoFluxo[], max = MAX_MESES): PontoFluxo[] {
   if (pontos.length === 0) return []
   const porMes = new Map(pontos.map((p) => [p.mes, p]))
   const saida: PontoFluxo[] = []
@@ -24,7 +24,7 @@ function completarMeses(pontos: readonly PontoFluxo[]): PontoFluxo[] {
     saida.push(porMes.get(mes) ?? { mes, entradas: 0, saidas: 0, saldo: 0 })
     mes = deslocarMes(mes, 1)
   }
-  return saida.slice(-MAX_MESES)
+  return saida.slice(-max)
 }
 
 /** Escala "redonda" para o eixo Y: 0 até um teto bonito, em 4 marcas. */
@@ -51,8 +51,15 @@ function useLargura<T extends HTMLElement>() {
 
 const rotuloMes = (mes: string) => formatarData(`${mes}-01`, 'MMM/yy').replace('.', '')
 
-export function GraficoFluxo({ pontos }: { pontos: readonly PontoFluxo[] }) {
-  const dados = useMemo(() => completarMeses(pontos), [pontos])
+export function GraficoFluxo({
+  pontos,
+  maxMeses = MAX_MESES,
+}: {
+  pontos: readonly PontoFluxo[]
+  /** Quantos meses mostrar no máximo (os mais recentes). */
+  maxMeses?: number
+}) {
+  const dados = useMemo(() => completarMeses(pontos, maxMeses), [pontos, maxMeses])
   const [ref, largura] = useLargura<HTMLDivElement>()
   const [ativo, setAtivo] = useState<number | null>(null)
   const [comoTabela, setComoTabela] = useState(false)
@@ -92,14 +99,15 @@ export function GraficoFluxo({ pontos }: { pontos: readonly PontoFluxo[] }) {
       {comoTabela ? (
         <TabelaFluxo dados={dados} />
       ) : (
-        <div ref={ref} className="relative" onMouseLeave={() => setAtivo(null)}>
+        // svg absoluto: ele não empurra a largura do contêiner, então o gráfico também encolhe com a tela
+        <div ref={ref} className="relative min-w-0" style={{ height: ALTURA }} onMouseLeave={() => setAtivo(null)}>
           {largura > 0 && (
             <svg
               width={largura}
               height={ALTURA}
               role="img"
               aria-label={`Entradas e saídas por mês, de ${rotuloMes(dados[0]?.mes ?? '')} a ${rotuloMes(dados.at(-1)?.mes ?? '')}. Use "Ver como tabela" para os valores.`}
-              className="overflow-visible"
+              className="absolute inset-0 overflow-visible"
             >
               {/* grade e eixo Y — recessivos */}
               {marcas.map((m) => (
@@ -207,8 +215,8 @@ export function GraficoFluxo({ pontos }: { pontos: readonly PontoFluxo[] }) {
         </div>
       )}
 
-      {pontos.length > 0 && completarMeses(pontos).length === MAX_MESES && (
-        <p className="text-xs text-muted-foreground">Mostrando os últimos {MAX_MESES} meses.</p>
+      {pontos.length > 0 && dados.length === maxMeses && (
+        <p className="text-xs text-muted-foreground">Mostrando os últimos {maxMeses} meses.</p>
       )}
     </div>
   )

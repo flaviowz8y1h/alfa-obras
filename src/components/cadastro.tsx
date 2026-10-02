@@ -105,7 +105,7 @@ export function BarraFiltros<S extends string>({
       <div
         role="radiogroup"
         aria-label="Filtrar por status"
-        className="flex rounded-lg border bg-card p-1"
+        className="flex min-w-0 overflow-x-auto rounded-lg border bg-card p-1"
       >
         {filtros.map((f) => {
           const ativo = f.valor === filtro

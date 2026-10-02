@@ -60,3 +60,32 @@ export function useExcluirCategoria() {
     onSuccess: () => void qc.invalidateQueries({ queryKey: [CHAVE_CATEGORIAS] }),
   })
 }
+
+const PAGINA = 1000
+
+/**
+ * Quanto já saiu em cada categoria (todas as obras, todo o período).
+ * Busca só duas colunas, em páginas, porque o PostgREST limita as linhas por resposta.
+ */
+export function useGastoPorCategoria() {
+  const { idEmpresa } = useUsuarioLogado()
+  return useQuery({
+    queryKey: ['fSaidasObras', idEmpresa, 'por-categoria'],
+    queryFn: async () => {
+      const total = new Map<string, number>()
+      for (let de = 0; ; de += PAGINA) {
+        const { data, error } = await supabase
+          .from('fSaidasObras')
+          .select('ID_Categoria, Valor')
+          .eq('ID_Empresa', idEmpresa)
+          .order('ID_Saida')
+          .range(de, de + PAGINA - 1)
+        if (error) throw error
+        for (const s of data) total.set(s.ID_Categoria, (total.get(s.ID_Categoria) ?? 0) + Number(s.Valor ?? 0))
+        if (data.length < PAGINA) break
+      }
+      return total
+    },
+    staleTime: 60_000,
+  })
+}
