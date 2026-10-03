@@ -211,12 +211,13 @@ export function PainelEquipe({ trabalhadores }: { trabalhadores: readonly Trabal
           </p>
         ) : (
           <>
-            {/* Celular: um cartão por pessoa */}
-            <ul className="bg-muted/30 grid gap-3 border-t p-3 md:hidden">
+            {/* Celular: um cartão por pessoa. grid-cols-1 (= minmax(0,1fr)) na lista e no cartão:
+                sem coluna definida, nome e função compridos alargavam o cartão além da tela. */}
+            <ul className="bg-muted/30 grid grid-cols-1 gap-3 border-t p-3 md:hidden">
               {linhas.map((l) => (
                 <li
                   key={l.trabalhador.ID_Trabalhador}
-                  className="bg-card grid gap-3 rounded-xl border p-4"
+                  className="bg-card grid grid-cols-1 gap-3 rounded-xl border p-4"
                 >
                   <div className="flex items-start justify-between gap-3">
                     <Pessoa l={l} />
