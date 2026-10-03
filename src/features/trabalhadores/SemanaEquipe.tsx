@@ -13,7 +13,15 @@ import type { Trabalhador } from '@/types/app'
 import { mensagemDeErro } from '@/utils/erros'
 import { montarSemana, type LinhaSemana } from '@/utils/semana-equipe'
 import { ReguaSemana } from '@/components/regua-semana'
-import { formatarData, formatarMoeda, mesAtual, num, paraISO, rotuloDia } from '@/utils/format'
+import {
+  formatarData,
+  formatarMoeda,
+  mesAtual,
+  nomeDoMes,
+  num,
+  paraISO,
+  rotuloDia,
+} from '@/utils/format'
 import { usePagamentosSemana } from './api'
 
 /* ---------------- Vínculo ---------------- */
@@ -110,7 +118,8 @@ export function PainelEquipe({ trabalhadores }: { trabalhadores: readonly Trabal
         />
         <CartaoIndicador
           indice={1}
-          rotulo="Pago no mês"
+          // A semana pode começar no mês anterior: nomear o mês evita parecer que "semana > mês" é erro.
+          rotulo={`Pago em ${nomeDoMes(mesAtual())}`}
           valor={mes.isPending ? '…' : formatarMoeda(pagoMes)}
           detalhe={`${mes.data?.length ?? 0} pagamento(s) de mão de obra`}
         />

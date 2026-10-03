@@ -87,7 +87,8 @@ export function BarraFiltros<S extends string>({
           onChange={(e) => aoBuscar(e.target.value)}
           placeholder={placeholder}
           aria-label={placeholder}
-          className="pr-11 pl-10"
+          // espaço do botão "limpar" só quando ele aparece; sem isso o texto de ajuda era cortado
+          className={cn('pl-10 text-ellipsis', busca && 'pr-11')}
         />
         {busca && (
           <Button

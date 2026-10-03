@@ -15,10 +15,16 @@ export function Header() {
         <div className="flex min-w-0 items-center gap-3">
           <Monograma className="text-marca size-9 shrink-0 lg:hidden dark:text-white" />
           <div className="min-w-0">
-            <p className="text-muted-foreground text-xs font-medium tracking-wider uppercase">
+            <p className="text-muted-foreground hidden text-xs font-medium tracking-wider uppercase sm:block">
               Empresa
             </p>
-            <p className="truncate text-base leading-tight font-semibold">{nomeEmpresa}</p>
+            {/* No celular o rótulo some e o nome pode quebrar em 2 linhas, em vez de ser cortado. */}
+            <p
+              className="line-clamp-2 text-sm leading-tight font-semibold sm:line-clamp-1 sm:text-base"
+              title={nomeEmpresa}
+            >
+              {nomeEmpresa}
+            </p>
           </div>
         </div>
         <div className="flex items-center gap-2">

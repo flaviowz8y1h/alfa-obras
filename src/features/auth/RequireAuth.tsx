@@ -1,12 +1,17 @@
 import { RefreshCw, ShieldAlert } from 'lucide-react'
+import { lazy, Suspense } from 'react'
 import { Navigate, Outlet, useLocation } from 'react-router'
 import { TelaCarregando } from '@/components/tela-carregando'
 import { Button } from '@/components/ui/button'
 import type { Perfil } from '@/types/app'
 import { AuthLayout } from './AuthLayout'
-import { MfaEnrollPage } from './MfaEnrollPage'
 import { MfaVerifyPage } from './MfaVerifyPage'
 import { useAuth, useUsuarioLogado } from './auth-context'
+
+// Cadastro do MFA é raro (uma vez por owner) e traz o gerador de QR code: carrega só quando precisa.
+const MfaEnrollPage = lazy(async () => ({
+  default: (await import('./MfaEnrollPage')).MfaEnrollPage,
+}))
 
 /** Libera as rotas filhas só com sessão válida — e aal2 quando o perfil exige. */
 export function RequireAuth() {
@@ -21,7 +26,11 @@ export function RequireAuth() {
     case 'mfa_verificacao':
       return <MfaVerifyPage />
     case 'mfa_cadastro':
-      return <MfaEnrollPage />
+      return (
+        <Suspense fallback={<TelaCarregando />}>
+          <MfaEnrollPage />
+        </Suspense>
+      )
     case 'erro':
       return (
         <AuthLayout titulo="Não conseguimos carregar sua conta" descricao={estado.mensagem}>

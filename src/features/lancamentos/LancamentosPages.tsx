@@ -105,13 +105,15 @@ export function LancamentosPage() {
         <p className="mt-1 text-muted-foreground">Saídas, recebimentos e mão de obra num só extrato.</p>
       </header>
 
+      {/* @container: o layout em linha depende da largura do próprio bloco, não da tela —
+          com a barra lateral ou em tablet, 3 cartões em linha ficavam espremidos. */}
       {podeCriar && (
-        <nav aria-label="Novo lançamento" className="grid grid-cols-3 gap-2 sm:gap-3">
+        <nav aria-label="Novo lançamento" className="@container grid grid-cols-3 gap-2 sm:gap-3">
           {ORDEM.map((t) => (
             <Link
               key={t}
               to={`${TIPO_LANCAMENTO[t].para}?novo=1`}
-              className="group flex min-h-20 flex-col items-center justify-center gap-2 rounded-xl border bg-card p-3 text-center transition-colors duration-150 hover:border-ring/40 hover:bg-accent/40 focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none sm:flex-row sm:justify-start sm:gap-4 sm:p-4 sm:text-left"
+              className="group flex min-h-20 flex-col items-center justify-center gap-2 rounded-xl border bg-card p-3 text-center transition-colors duration-150 hover:border-ring/40 hover:bg-accent/40 focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none sm:p-4 @4xl:flex-row @4xl:justify-start @4xl:gap-4 @4xl:text-left"
             >
               <IconeTipo tipo={t} />
               <span className="min-w-0 flex-1">
@@ -119,7 +121,7 @@ export function LancamentosPage() {
                 <span className="hidden text-sm text-muted-foreground sm:block">{NOVO[t].descricao}</span>
               </span>
               <Plus
-                className="hidden size-5 text-muted-foreground transition-transform duration-150 group-hover:rotate-90 sm:block"
+                className="hidden size-5 text-muted-foreground transition-transform duration-150 group-hover:rotate-90 @4xl:block"
                 aria-hidden="true"
               />
             </Link>

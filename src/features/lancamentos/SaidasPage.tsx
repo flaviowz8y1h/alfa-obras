@@ -75,7 +75,7 @@ export function SaidasPage() {
         <BarraFiltros
           busca={busca}
           aoBuscar={setBusca}
-          placeholder="Buscar por descrição, fornecedor ou categoria"
+          placeholder="Buscar descrição, fornecedor ou categoria"
         />
       )}
 

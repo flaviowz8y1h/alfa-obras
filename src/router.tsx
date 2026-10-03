@@ -7,30 +7,17 @@ import { EsqueciSenhaPage, NovaSenhaPage } from '@/features/auth/ResetPassword'
 import { DashboardPage } from '@/features/dashboard/DashboardPage'
 import { LancamentosPage } from '@/features/lancamentos/LancamentosPages'
 import { NaoEncontradaPage } from '@/components/nao-encontrada'
+import { TelaCarregando } from '@/components/tela-carregando'
+import { paginas } from '@/paginas'
 
-// Cadastros carregam sob demanda: o primeiro acesso (login + dashboard) fica mais leve.
-const obras = async () => ({ Component: (await import('@/features/obras/ObrasPage')).ObrasPage })
-const obraDetalhe = async () => ({
-  Component: (await import('@/features/obras/ObraDetalhePage')).ObraDetalhePage,
-})
-const clientes = async () => ({
-  Component: (await import('@/features/clientes/ClientesPage')).ClientesPage,
-})
-const trabalhadores = async () => ({
-  Component: (await import('@/features/trabalhadores/TrabalhadoresPage')).TrabalhadoresPage,
-})
-const categorias = async () => ({
-  Component: (await import('@/features/categorias/CategoriasPage')).CategoriasPage,
-})
-const saidas = async () => ({
-  Component: (await import('@/features/lancamentos/SaidasPage')).SaidasPage,
-})
-const recebimentos = async () => ({
-  Component: (await import('@/features/lancamentos/RecebimentosPage')).RecebimentosPage,
-})
-const maoDeObra = async () => ({
-  Component: (await import('@/features/lancamentos/MaoDeObraPage')).MaoDeObraPage,
-})
+const obras = async () => ({ Component: (await paginas.obras()).ObrasPage })
+const obraDetalhe = async () => ({ Component: (await paginas.obraDetalhe()).ObraDetalhePage })
+const clientes = async () => ({ Component: (await paginas.clientes()).ClientesPage })
+const trabalhadores = async () => ({ Component: (await paginas.trabalhadores()).TrabalhadoresPage })
+const categorias = async () => ({ Component: (await paginas.categorias()).CategoriasPage })
+const saidas = async () => ({ Component: (await paginas.saidas()).SaidasPage })
+const recebimentos = async () => ({ Component: (await paginas.recebimentos()).RecebimentosPage })
+const maoDeObra = async () => ({ Component: (await paginas.maoDeObra()).MaoDeObraPage })
 
 export const router = createBrowserRouter([
   { path: '/login', element: <LoginPage /> },
@@ -38,6 +25,8 @@ export const router = createBrowserRouter([
   { path: '/nova-senha', element: <NovaSenhaPage /> },
   {
     element: <RequireAuth />,
+    // Aberto direto numa tela sob demanda (link, F5), o roteador espera o arquivo: sem isto a tela ficava em branco.
+    HydrateFallback: TelaCarregando,
     children: [
       {
         element: <AppShell />,
@@ -53,9 +42,7 @@ export const router = createBrowserRouter([
             children: [
               {
                 path: 'analises',
-                lazy: async () => ({
-                  Component: (await import('@/features/analises/AnalisesPage')).AnalisesPage,
-                }),
+                lazy: async () => ({ Component: (await paginas.analises()).AnalisesPage }),
               },
             ],
           },
@@ -78,9 +65,7 @@ export const router = createBrowserRouter([
             children: [
               {
                 path: 'usuarios',
-                lazy: async () => ({
-                  Component: (await import('@/features/usuarios/UsuariosPage')).UsuariosPage,
-                }),
+                lazy: async () => ({ Component: (await paginas.usuarios()).UsuariosPage }),
               },
             ],
           },

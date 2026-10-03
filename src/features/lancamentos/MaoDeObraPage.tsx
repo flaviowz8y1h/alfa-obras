@@ -99,7 +99,7 @@ export function MaoDeObraPage() {
         <BarraFiltros
           busca={busca}
           aoBuscar={setBusca}
-          placeholder="Buscar por trabalhador, função ou obra"
+          placeholder="Buscar trabalhador, função ou obra"
         />
       )}
 

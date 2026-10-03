@@ -77,7 +77,7 @@ export function TrabalhadoresPage() {
       <BarraFiltros
         busca={busca}
         aoBuscar={setBusca}
-        placeholder="Buscar por nome ou função"
+        placeholder="Buscar nome ou função"
         filtro={filtro}
         aoFiltrar={setFiltro}
         filtros={[

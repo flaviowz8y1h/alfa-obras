@@ -73,6 +73,18 @@
       transform: translateY(8px);
     }
   }
+
+  /* Barra de troca de página: faixa que corre de um lado ao outro enquanto a tela carrega. */
+  --animate-navegando: navegando 1.1s ease-in-out infinite;
+
+  @keyframes navegando {
+    from {
+      transform: translateX(-100%);
+    }
+    to {
+      transform: translateX(250%);
+    }
+  }
 }
 
 /*

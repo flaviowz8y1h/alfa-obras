@@ -71,7 +71,7 @@ export function RecebimentosPage() {
       <TotalPeriodo rotulo="Recebido no mês" total={total} quantidade={visiveis.length} tipo="entrada" />
 
       {todos.length > 0 && (
-        <BarraFiltros busca={busca} aoBuscar={setBusca} placeholder="Buscar por obra, cliente ou observação" />
+        <BarraFiltros busca={busca} aoBuscar={setBusca} placeholder="Buscar obra, cliente ou observação" />
       )}
 
       {consulta.isPending ? (

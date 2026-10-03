@@ -98,7 +98,7 @@ export function ClientesPage() {
       <BarraFiltros
         busca={busca}
         aoBuscar={setBusca}
-        placeholder="Buscar por nome ou telefone"
+        placeholder="Buscar nome ou telefone"
         filtro={filtro}
         aoFiltrar={setFiltro}
         filtros={[

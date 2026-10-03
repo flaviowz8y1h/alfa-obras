@@ -68,7 +68,7 @@ export function ObrasPage() {
       <BarraFiltros
         busca={busca}
         aoBuscar={setBusca}
-        placeholder="Buscar por obra ou cliente"
+        placeholder="Buscar obra ou cliente"
         filtro={filtro}
         aoFiltrar={setFiltro}
         filtros={[

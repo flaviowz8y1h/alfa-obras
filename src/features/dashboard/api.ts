@@ -66,7 +66,7 @@ export type UltimoLancamento = {
 
 const QUANTOS = 6
 
-/** Os lançamentos registrados por último, das três tabelas. */
+/** Os lançamentos mais recentes pela data do lançamento (empate: o cadastrado por último), das três tabelas. */
 export function useUltimosLancamentos() {
   const { idEmpresa } = useUsuarioLogado()
   const chave = (tabela: string) => [tabela, idEmpresa, 'ultimos']
@@ -78,6 +78,7 @@ export function useUltimosLancamentos() {
         .from('fRecebimentosObras')
         .select('ID_Recebimento, Data_Recebimento, Valor_Recebido, Observacao, Criado_Em, dObras(Nome_Obra)')
         .eq('ID_Empresa', idEmpresa)
+        .order('Data_Recebimento', { ascending: false, nullsFirst: false })
         .order('Criado_Em', { ascending: false })
         .limit(QUANTOS)
       if (error) throw error
@@ -102,6 +103,7 @@ export function useUltimosLancamentos() {
         .from('fSaidasObras')
         .select('ID_Saida, Data_Saida, Valor, Descricao, Criado_Em, dObras(Nome_Obra), dCategoriaGastos(Nome_Categoria)')
         .eq('ID_Empresa', idEmpresa)
+        .order('Data_Saida', { ascending: false, nullsFirst: false })
         .order('Criado_Em', { ascending: false })
         .limit(QUANTOS)
       if (error) throw error
@@ -126,6 +128,7 @@ export function useUltimosLancamentos() {
         .from('fPagamentosMaoDeObra')
         .select('ID_Pagamento, Data_Pagamento, Valor_Pago, Tipo_Pagamento, Criado_Em, dObras(Nome_Obra), dTrabalhadores(Nome_Trabalhador)')
         .eq('ID_Empresa', idEmpresa)
+        .order('Data_Pagamento', { ascending: false, nullsFirst: false })
         .order('Criado_Em', { ascending: false })
         .limit(QUANTOS)
       if (error) throw error
@@ -147,7 +150,7 @@ export function useUltimosLancamentos() {
   return {
     itens: consultas
       .flatMap((c) => c.data ?? [])
-      .sort((a, b) => b.criadoEm.localeCompare(a.criadoEm))
+      .sort((a, b) => (b.data ?? '').localeCompare(a.data ?? '') || b.criadoEm.localeCompare(a.criadoEm))
       .slice(0, QUANTOS),
     carregando: consultas.some((c) => c.isPending),
     erro: consultas.find((c) => c.isError)?.error ?? null,
