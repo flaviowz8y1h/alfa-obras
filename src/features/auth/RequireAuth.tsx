@@ -42,14 +42,20 @@ export function RequireAuth() {
 }
 
 /** Restringe uma rota a perfis específicos (a RLS continua sendo a barreira real). */
-export function RequirePerfil({ perfis }: { perfis: readonly Perfil[] }) {
+export function RequirePerfil({
+  perfis,
+  descricao = 'Esta área é exclusiva do proprietário da conta.',
+}: {
+  perfis: readonly Perfil[]
+  descricao?: string
+}) {
   const { perfil } = useUsuarioLogado()
   if (perfis.includes(perfil)) return <Outlet />
   return (
     <div className="mx-auto grid max-w-md justify-items-center gap-3 py-20 text-center">
-      <ShieldAlert className="size-10 text-muted-foreground" aria-hidden="true" />
+      <ShieldAlert className="text-muted-foreground size-10" aria-hidden="true" />
       <h1 className="text-xl font-bold">Acesso restrito</h1>
-      <p className="text-muted-foreground">Esta área é exclusiva do proprietário da conta.</p>
+      <p className="text-muted-foreground">{descricao}</p>
     </div>
   )
 }

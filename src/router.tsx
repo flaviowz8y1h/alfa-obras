@@ -2,6 +2,7 @@ import { createBrowserRouter } from 'react-router'
 import { AppShell } from '@/components/layout/AppShell'
 import { LoginPage } from '@/features/auth/LoginPage'
 import { RequireAuth, RequirePerfil } from '@/features/auth/RequireAuth'
+import { PERFIS_ANALISES } from '@/features/auth/permissoes'
 import { EsqueciSenhaPage, NovaSenhaPage } from '@/features/auth/ResetPassword'
 import { DashboardPage } from '@/features/dashboard/DashboardPage'
 import { LancamentosPage } from '@/features/lancamentos/LancamentosPages'
@@ -43,10 +44,20 @@ export const router = createBrowserRouter([
         children: [
           { index: true, element: <DashboardPage /> },
           {
-            path: 'analises',
-            lazy: async () => ({
-              Component: (await import('@/features/analises/AnalisesPage')).AnalisesPage,
-            }),
+            element: (
+              <RequirePerfil
+                perfis={PERFIS_ANALISES}
+                descricao="Esta área é exclusiva de proprietários e administradores."
+              />
+            ),
+            children: [
+              {
+                path: 'analises',
+                lazy: async () => ({
+                  Component: (await import('@/features/analises/AnalisesPage')).AnalisesPage,
+                }),
+              },
+            ],
           },
           { path: 'obras', lazy: obras },
           { path: 'obras/:id', lazy: obraDetalhe },

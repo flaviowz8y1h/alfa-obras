@@ -1,15 +1,16 @@
 import { useQuery } from '@tanstack/react-query'
 import { useUsuarioLogado } from '@/features/auth/auth-context'
+import { podeVerAnalises } from '@/features/auth/permissoes'
 import { supabase } from '@/lib/supabase'
 import { num } from '@/utils/format'
 import type { ResumoObra } from '@/types/app'
 import { lerPaginas, periodoValido, type FiltrosAnalise, type MovimentoAnalise } from './calculos'
 
 export function usePosicaoAnalise() {
-  const { idEmpresa } = useUsuarioLogado()
+  const { idEmpresa, perfil } = useUsuarioLogado()
   return useQuery({
     queryKey: ['vw_resumo_obras', idEmpresa, 'analises-atual'],
-    enabled: !!idEmpresa,
+    enabled: !!idEmpresa && podeVerAnalises(perfil),
     queryFn: ({ signal }): Promise<ResumoObra[]> =>
       lerPaginas((inicio, fim) =>
         supabase
@@ -24,10 +25,10 @@ export function usePosicaoAnalise() {
 }
 
 export function useMovimentosAnalise(filtros: FiltrosAnalise) {
-  const { idEmpresa } = useUsuarioLogado()
+  const { idEmpresa, perfil } = useUsuarioLogado()
   return useQuery({
     queryKey: ['analises', idEmpresa, filtros.inicio, filtros.fim, filtros.obra],
-    enabled: !!idEmpresa && periodoValido(filtros),
+    enabled: !!idEmpresa && podeVerAnalises(perfil) && periodoValido(filtros),
     queryFn: async ({ signal }): Promise<MovimentoAnalise[]> => {
       const [recebimentos, saidas, pagamentos] = await Promise.all([
         lerPaginas((inicio, fim) => {

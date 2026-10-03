@@ -13,6 +13,7 @@ import {
   Wallet,
 } from 'lucide-react'
 import type { Perfil } from '@/types/app'
+import { PERFIS_ANALISES } from '@/features/auth/permissoes'
 
 export type ItemNav = {
   rotulo: string
@@ -36,7 +37,7 @@ export const NAVEGACAO: readonly ItemNav[] = [
   { rotulo: 'Equipe', para: '/trabalhadores', icone: HardHat },
   { rotulo: 'Lançamentos', para: '/lancamentos', icone: ReceiptText, filhos: LANCAMENTOS },
   { rotulo: 'Categorias', para: '/categorias', icone: Tags },
-  { rotulo: 'Análises', para: '/analises', icone: ChartNoAxesCombined },
+  { rotulo: 'Análises', para: '/analises', icone: ChartNoAxesCombined, perfis: PERFIS_ANALISES },
   { rotulo: 'Usuários', para: '/usuarios', icone: ShieldCheck, perfis: ['owner'] },
 ]
 
