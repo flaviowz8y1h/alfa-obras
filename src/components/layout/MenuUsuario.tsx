@@ -19,9 +19,10 @@ function iniciais(nome: string): string {
 
 export function MenuUsuario() {
   const { sair } = useAuth()
-  const { usuario, perfil, email } = useUsuarioLogado()
+  const { usuario, perfil } = useUsuarioLogado()
   const { escuro, alternar } = useTema()
-  const nome = usuario.Nome?.trim() || email
+  // O e-mail não aparece na tela: sem nome cadastrado, mostra um rótulo neutro.
+  const nome = usuario.Nome?.trim() || 'Minha conta'
 
   return (
     <DropdownMenu>
@@ -41,7 +42,7 @@ export function MenuUsuario() {
         <DropdownMenuGroup>
           <DropdownMenuLabel className="grid gap-0.5 py-2">
             <span className="truncate text-sm font-semibold text-foreground">{nome}</span>
-            <span className="truncate font-normal">{email}</span>
+            <span className="truncate font-normal">{PERFIL_ROTULO[perfil]}</span>
           </DropdownMenuLabel>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
