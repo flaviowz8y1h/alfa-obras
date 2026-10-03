@@ -23,6 +23,8 @@ export function MenuUsuario() {
   const { escuro, alternar } = useTema()
   // O e-mail não aparece na tela: sem nome cadastrado, mostra um rótulo neutro.
   const nome = usuario.Nome?.trim() || 'Minha conta'
+  // O proprietário vê só o nome; para os outros perfis o rótulo explica por que algumas telas não aparecem.
+  const rotuloPerfil = perfil === 'owner' ? null : PERFIL_ROTULO[perfil]
 
   return (
     <DropdownMenu>
@@ -35,14 +37,14 @@ export function MenuUsuario() {
         </span>
         <span className="hidden min-w-0 sm:block">
           <span className="block max-w-40 truncate text-sm font-semibold">{nome}</span>
-          <span className="block text-xs text-muted-foreground">{PERFIL_ROTULO[perfil]}</span>
+          {rotuloPerfil && <span className="block text-xs text-muted-foreground">{rotuloPerfil}</span>}
         </span>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-60">
         <DropdownMenuGroup>
           <DropdownMenuLabel className="grid gap-0.5 py-2">
             <span className="truncate text-sm font-semibold text-foreground">{nome}</span>
-            <span className="truncate font-normal">{PERFIL_ROTULO[perfil]}</span>
+            {rotuloPerfil && <span className="truncate font-normal">{rotuloPerfil}</span>}
           </DropdownMenuLabel>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
