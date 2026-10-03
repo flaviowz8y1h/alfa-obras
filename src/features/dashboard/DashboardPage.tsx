@@ -289,7 +289,7 @@ function TabelaObras({ linhas, totais }: { linhas: readonly ResumoObra[]; totais
       {/* Celular: uma ficha por obra */}
       <ul className="grid grid-cols-1 gap-3 md:hidden">
         {ordenadas.map((o) => (
-          <li key={o.ID_Obra} className="bg-card grid gap-3 rounded-xl border p-4">
+          <li key={o.ID_Obra} className="bg-card grid grid-cols-1 gap-3 rounded-xl border p-4">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <Link
