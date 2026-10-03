@@ -1,4 +1,4 @@
-import { addDays, eachDayOfInterval, getDay, parseISO, startOfWeek } from 'date-fns'
+import { addDays, parseISO, startOfWeek } from 'date-fns'
 import { Check, ChevronLeft, ChevronRight, Plus } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router'
@@ -11,9 +11,10 @@ import { usePermissao } from '@/hooks/use-permissao'
 import { cn } from '@/lib/utils'
 import type { Trabalhador } from '@/types/app'
 import { mensagemDeErro } from '@/utils/erros'
-import { resumoDiariaNaSemana } from '@/utils/diarias'
+import { montarSemana, type LinhaSemana } from '@/utils/semana-equipe'
+import { ReguaSemana } from '@/components/regua-semana'
 import { formatarData, formatarMoeda, mesAtual, num, paraISO, rotuloDia } from '@/utils/format'
-import { type PagamentoSemana, usePagamentosSemana } from './api'
+import { usePagamentosSemana } from './api'
 
 /* ---------------- Vínculo ---------------- */
 
@@ -41,80 +42,6 @@ export function SeloVinculo({ vinculo }: { vinculo: string | null }) {
 
 const segundaDe = (d: Date) => paraISO(startOfWeek(d, { weekStartsOn: 1 }))
 
-/** Dias de segunda a sábado de um período (domingo não conta, como no lançamento). */
-function diasUteis(inicio: string, fim: string): number {
-  const a = parseISO(inicio)
-  const b = parseISO(fim)
-  if (b < a) return 0
-  return eachDayOfInterval({ start: a, end: b }).filter((d) => getDay(d) !== 0).length
-}
-
-type LinhaSemana = {
-  trabalhador: Trabalhador
-  dias: Set<string>
-  valor: number
-  obras: Set<string>
-  semDatas: boolean
-}
-
-function montarSemana(
-  dias: readonly string[],
-  pagamentos: readonly PagamentoSemana[],
-  trabalhadores: readonly Trabalhador[],
-): LinhaSemana[] {
-  const porId = new Map(trabalhadores.map((t) => [t.ID_Trabalhador, t]))
-  const linhas = new Map<string, LinhaSemana>()
-  const linha = (t: Trabalhador) => {
-    const l = linhas.get(t.ID_Trabalhador) ?? {
-      trabalhador: t,
-      dias: new Set(),
-      valor: 0,
-      obras: new Set(),
-      semDatas: false,
-    }
-    linhas.set(t.ID_Trabalhador, l)
-    return l
-  }
-
-  for (const p of pagamentos) {
-    const t = porId.get(p.ID_Trabalhador)
-    if (!t) continue
-    const l = linha(t)
-    if (p.Nome_Obra) l.obras.add(p.Nome_Obra)
-    if (p.Tipo_Pagamento === 'Diária') {
-      const resumo = resumoDiariaNaSemana(p, dias)
-      resumo.datas.forEach((d) => l.dias.add(d))
-      l.valor += resumo.valor
-      l.semDatas ||= resumo.semDatas
-      continue
-    }
-    if (!p.Periodo_Inicio || !p.Periodo_Fim) {
-      // sem período: conta o valor na semana em que foi pago
-      l.valor += num(p.Valor_Pago)
-      continue
-    }
-    const { Periodo_Inicio: ini, Periodo_Fim: fim } = p
-    const cobertos = dias.filter((d) => d >= ini && d <= fim)
-    cobertos.forEach((d) => l.dias.add(d))
-    // período maior que a semana: só a parte proporcional entra aqui
-    const total = diasUteis(ini, fim)
-    const proporcional = total ? (num(p.Valor_Pago) * cobertos.length) / total : 0
-    l.valor += proporcional
-  }
-
-  // diaristas ativos sem nada pago também aparecem: é justamente quem pode estar faltando
-  for (const t of trabalhadores) {
-    if ((t.Status ?? 'Ativo') === 'Ativo' && t.Tipo_Vinc_Contrato === 'Diarista') linha(t)
-  }
-
-  return [...linhas.values()].sort((a, b) =>
-    (a.trabalhador.Nome_Trabalhador ?? '').localeCompare(
-      b.trabalhador.Nome_Trabalhador ?? '',
-      'pt-BR',
-    ),
-  )
-}
-
 /* ---------------- Painel ---------------- */
 
 export function PainelEquipe({ trabalhadores }: { trabalhadores: readonly Trabalhador[] }) {
@@ -127,6 +54,7 @@ export function PainelEquipe({ trabalhadores }: { trabalhadores: readonly Trabal
   )
   const fim = dias[5]!
   const consulta = usePagamentosSemana(inicio, fim)
+  const carregandoSemana = consulta.isPending || consulta.isPlaceholderData
   const mes = usePagamentosMaoDeObra({ mes: mesAtual(), obra: '' })
 
   const linhas = useMemo(
@@ -136,8 +64,11 @@ export function PainelEquipe({ trabalhadores }: { trabalhadores: readonly Trabal
   const pagoSemana = linhas.reduce((s, l) => s + l.valor, 0)
   const diasPagos = linhas.reduce((s, l) => s + l.dias.size, 0)
   const pessoasPagas = linhas.filter((l) => l.valor > 0).length
-  const diaristasSemPagamento = linhas.filter(
-    (l) => l.trabalhador.Tipo_Vinc_Contrato === 'Diarista' && l.valor === 0,
+  const diaristasSemDias = linhas.filter(
+    (l) =>
+      l.trabalhador.Tipo_Vinc_Contrato === 'Diarista' &&
+      (l.trabalhador.Status ?? 'Ativo') === 'Ativo' &&
+      l.dias.size === 0,
   ).length
   const pagoMes = (mes.data ?? []).reduce((s, p) => s + num(p.Valor_Pago), 0)
 
@@ -156,12 +87,26 @@ export function PainelEquipe({ trabalhadores }: { trabalhadores: readonly Trabal
 
   return (
     <div className="grid gap-6">
-      <FaixaIndicadores rotulo="Resumo da equipe">
+      <FaixaIndicadores rotulo="Resumo da equipe" className="grid-cols-2">
         <CartaoIndicador
           destaque
           rotulo={inicio === semanaAtual ? 'Pago nesta semana' : 'Pago na semana'}
-          valor={<Moeda valor={pagoSemana} />}
-          detalhe={`${pessoasPagas} ${pessoasPagas === 1 ? 'pessoa' : 'pessoas'} · ${diasPagos} ${diasPagos === 1 ? 'dia pago' : 'dias pagos'}`}
+          valor={
+            carregandoSemana ? (
+              '…'
+            ) : consulta.isError ? (
+              'Indisponível'
+            ) : (
+              <Moeda valor={pagoSemana} />
+            )
+          }
+          detalhe={
+            carregandoSemana
+              ? 'Carregando pagamentos…'
+              : consulta.isError
+                ? 'Não foi possível conferir os pagamentos.'
+                : `${pessoasPagas} ${pessoasPagas === 1 ? 'pessoa' : 'pessoas'} · ${diasPagos} ${diasPagos === 1 ? 'dia pago' : 'dias pagos'}`
+          }
         />
         <CartaoIndicador
           indice={1}
@@ -177,15 +122,19 @@ export function PainelEquipe({ trabalhadores }: { trabalhadores: readonly Trabal
         />
         <CartaoIndicador
           indice={3}
-          rotulo="Diaristas sem dia pago"
-          valor={
-            <span className={cn(diaristasSemPagamento > 0 && 'text-aviso')}>
-              {diaristasSemPagamento}
-            </span>
-          }
-          detalhe="Diaristas ativos sem pagamento que cubra a semana"
+          rotulo="Sem dias confirmados"
+          valor={carregandoSemana ? '…' : consulta.isError ? '—' : diaristasSemDias}
+          detalhe="Diaristas ativos sem datas confirmadas na semana"
         />
       </FaixaIndicadores>
+
+      <ReguaSemana
+        mostrarAtalho={false}
+        dias={dias}
+        linhas={linhas}
+        carregando={carregandoSemana}
+        erro={consulta.isError ? mensagemDeErro(consulta.error) : undefined}
+      />
 
       <section
         aria-labelledby="titulo-semana"
@@ -239,7 +188,7 @@ export function PainelEquipe({ trabalhadores }: { trabalhadores: readonly Trabal
           </div>
         </div>
 
-        {consulta.isPending ? (
+        {carregandoSemana ? (
           <div className="grid gap-2 px-5 pb-5" role="status" aria-label="Carregando a semana">
             {Array.from({ length: 3 }, (_, i) => (
               <Skeleton key={i} className="h-14 rounded-lg" />

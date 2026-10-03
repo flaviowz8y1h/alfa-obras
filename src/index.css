@@ -238,6 +238,27 @@
   }
 }
 
+/* Pauta semanal: títulos de quadro e colunas que crescem a partir da base. */
+.titulo-semana,
+.semana-equipe > header h1 {
+  font-stretch: 85%;
+  line-height: 1;
+  letter-spacing: -0.025em;
+  text-transform: uppercase;
+}
+.semana-coluna {
+  transform-origin: bottom;
+  animation: semana-crescer 450ms var(--ease-saida) both;
+}
+@keyframes semana-crescer {
+  from {
+    transform: scaleY(0);
+  }
+}
+.pauta-semana .display {
+  font-stretch: 95%;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

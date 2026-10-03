@@ -62,9 +62,9 @@ export function TrabalhadoresPage() {
   )
 
   return (
-    <div className="grid gap-6">
+    <div className="semana-equipe grid gap-6">
       <CabecalhoCadastro
-        titulo="Trabalhadores"
+        titulo="Equipe"
         descricao="Equipe, diárias e chave PIX para pagamento."
         rotuloNovo="Novo trabalhador"
         aoCriar={permissao.criar ? p.novo : undefined}

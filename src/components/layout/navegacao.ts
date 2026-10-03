@@ -29,10 +29,10 @@ export const LANCAMENTOS: readonly ItemNav[] = [
 ]
 
 export const NAVEGACAO: readonly ItemNav[] = [
-  { rotulo: 'Dashboard', para: '/', icone: LayoutDashboard },
+  { rotulo: 'Pauta da semana', para: '/', icone: LayoutDashboard },
   { rotulo: 'Obras', para: '/obras', icone: Building2 },
   { rotulo: 'Clientes', para: '/clientes', icone: Users },
-  { rotulo: 'Trabalhadores', para: '/trabalhadores', icone: HardHat },
+  { rotulo: 'Equipe', para: '/trabalhadores', icone: HardHat },
   { rotulo: 'Lançamentos', para: '/lancamentos', icone: ReceiptText, filhos: LANCAMENTOS },
   { rotulo: 'Categorias', para: '/categorias', icone: Tags },
   { rotulo: 'Usuários', para: '/usuarios', icone: ShieldCheck, perfis: ['owner'] },
