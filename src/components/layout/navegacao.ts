@@ -2,6 +2,7 @@ import {
   ArrowDownToLine,
   ArrowUpFromLine,
   Building2,
+  ChartNoAxesCombined,
   HardHat,
   LayoutDashboard,
   type LucideIcon,
@@ -35,6 +36,7 @@ export const NAVEGACAO: readonly ItemNav[] = [
   { rotulo: 'Equipe', para: '/trabalhadores', icone: HardHat },
   { rotulo: 'Lançamentos', para: '/lancamentos', icone: ReceiptText, filhos: LANCAMENTOS },
   { rotulo: 'Categorias', para: '/categorias', icone: Tags },
+  { rotulo: 'Análises', para: '/analises', icone: ChartNoAxesCombined },
   { rotulo: 'Usuários', para: '/usuarios', icone: ShieldCheck, perfis: ['owner'] },
 ]
 

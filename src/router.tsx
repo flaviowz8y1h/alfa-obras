@@ -34,13 +34,20 @@ const maoDeObra = async () => ({
 export const router = createBrowserRouter([
   { path: '/login', element: <LoginPage /> },
   { path: '/esqueci-senha', element: <EsqueciSenhaPage /> },
-  { path: '/nova-senha', element: <NovaSenhaPage /> },  {
+  { path: '/nova-senha', element: <NovaSenhaPage /> },
+  {
     element: <RequireAuth />,
     children: [
       {
         element: <AppShell />,
         children: [
           { index: true, element: <DashboardPage /> },
+          {
+            path: 'analises',
+            lazy: async () => ({
+              Component: (await import('@/features/analises/AnalisesPage')).AnalisesPage,
+            }),
+          },
           { path: 'obras', lazy: obras },
           { path: 'obras/:id', lazy: obraDetalhe },
           { path: 'clientes', lazy: clientes },

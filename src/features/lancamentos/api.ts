@@ -10,6 +10,7 @@ type Filtros = { mes: Mes; obra: string }
 
 /** Qualquer lançamento muda os totais das obras, do dashboard e do fluxo mensal. */
 function invalidarTotais(qc: QueryClient, tabela: string) {
+  void qc.invalidateQueries({ queryKey: ['analises'] })
   void qc.invalidateQueries({ queryKey: [tabela] })
   void qc.invalidateQueries({ queryKey: ['vw_resumo_obras'] })
   void qc.invalidateQueries({ queryKey: ['vw_fluxo_mensal'] })

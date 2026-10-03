@@ -1,7 +1,13 @@
 import { Ellipsis } from 'lucide-react'
 import { useState } from 'react'
 import { NavLink, useLocation } from 'react-router'
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet'
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/ui/sheet'
 import { useUsuarioLogado } from '@/features/auth/auth-context'
 import { cn } from '@/lib/utils'
 import { NAV_INFERIOR, NAVEGACAO, visivelPara } from './navegacao'
@@ -34,14 +40,18 @@ export function BottomNav() {
     <>
       <nav
         aria-label="Principal"
-        className="pb-seguro fixed inset-x-0 bottom-0 z-40 border-t bg-card/95 backdrop-blur lg:hidden"
+        className="pb-seguro bg-card/95 fixed inset-x-0 bottom-0 z-40 border-t backdrop-blur lg:hidden"
       >
         <ul className="flex">
           {fixos.map((item) => {
             const Icone = item.icone
             return (
               <li key={item.para} className="flex flex-1">
-                <NavLink to={item.para} end={item.para === '/'} className={({ isActive }) => classeAba(isActive)}>
+                <NavLink
+                  to={item.para}
+                  end={item.para === '/'}
+                  className={({ isActive }) => classeAba(isActive)}
+                >
                   {({ isActive }) => (
                     <>
                       <span
@@ -84,7 +94,7 @@ export function BottomNav() {
         <SheetContent side="bottom" className="pb-seguro rounded-t-2xl">
           <SheetHeader>
             <SheetTitle className="text-lg font-bold">Mais opções</SheetTitle>
-            <SheetDescription>Cadastros e administração</SheetDescription>
+            <SheetDescription>Análises, cadastros e administração</SheetDescription>
           </SheetHeader>
           <ul className="grid gap-1 px-3 pb-4">
             {extras.map((item) => {
@@ -97,12 +107,12 @@ export function BottomNav() {
                     className={({ isActive }) =>
                       cn(
                         'flex min-h-14 items-center gap-4 rounded-xl px-4 text-base font-medium transition-colors',
-                        'focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none',
+                        'focus-visible:ring-ring/50 focus-visible:ring-3 focus-visible:outline-none',
                         isActive ? 'bg-accent text-accent-foreground' : 'hover:bg-muted',
                       )
                     }
                   >
-                    <Icone className="size-5 text-muted-foreground" aria-hidden="true" />
+                    <Icone className="text-muted-foreground size-5" aria-hidden="true" />
                     {item.rotulo}
                   </NavLink>
                 </li>
