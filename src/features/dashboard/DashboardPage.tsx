@@ -273,8 +273,9 @@ function TabelaObras({ linhas, totais }: { linhas: readonly ResumoObra[]; totais
       (a.Previsao_Termino ?? '9999').localeCompare(b.Previsao_Termino ?? '9999'),
   )
 
+  // grid-cols-1 (= minmax(0,1fr)) aqui e na lista: nomes com reticências alargavam a página no celular
   return (
-    <section aria-labelledby="titulo-obras" className="grid min-w-0 gap-4 self-start">
+    <section aria-labelledby="titulo-obras" className="grid min-w-0 grid-cols-1 gap-4 self-start">
       <div className="flex items-center justify-between gap-4">
         <h2 id="titulo-obras" className="text-xl font-bold">
           Por obra
@@ -286,7 +287,7 @@ function TabelaObras({ linhas, totais }: { linhas: readonly ResumoObra[]; totais
       </div>
 
       {/* Celular: uma ficha por obra */}
-      <ul className="grid gap-3 md:hidden">
+      <ul className="grid grid-cols-1 gap-3 md:hidden">
         {ordenadas.map((o) => (
           <li key={o.ID_Obra} className="bg-card grid gap-3 rounded-xl border p-4">
             <div className="flex items-start justify-between gap-3">

@@ -125,7 +125,7 @@ export function ClientesPage() {
           acao={permissao.criar && <Button onClick={p.novo}>Cadastrar cliente</Button>}
         />
       ) : (
-        <ul className="grid gap-2" aria-label="Clientes">
+        <ul className="grid grid-cols-1 gap-2" aria-label="Clientes">
           {visiveis.map((c) => (
             <li key={c.ID_Cliente}>
               <button

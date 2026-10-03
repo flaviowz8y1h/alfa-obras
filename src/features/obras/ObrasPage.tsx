@@ -95,7 +95,8 @@ export function ObrasPage() {
           acao={permissao.criar && <Button onClick={p.novo}>Cadastrar obra</Button>}
         />
       ) : (
-        <ul className="grid gap-4 md:grid-cols-2 2xl:grid-cols-3" aria-label="Obras">
+        <ul className="grid grid-cols-1 gap-4 md:grid-cols-2 2xl:grid-cols-3" aria-label="Obras">
+          {/* grid-cols-1 (= minmax(0,1fr)): sem coluna definida, o título com reticências alargava a lista além da tela no celular */}
           {visiveis.map((o, i) => (
             <li key={o.ID_Obra} className="animate-entrar" style={{ animationDelay: `${Math.min(i, 8) * 40}ms` }}>
               <CartaoObra obra={o} resumo={porId.get(o.ID_Obra)} />

@@ -104,7 +104,7 @@ export function TrabalhadoresPage() {
           acao={permissao.criar && <Button onClick={p.novo}>Cadastrar trabalhador</Button>}
         />
       ) : (
-        <ul className="grid gap-2" aria-label="Trabalhadores">
+        <ul className="grid grid-cols-1 gap-2" aria-label="Trabalhadores">
           {visiveis.map((t) => (
             <li key={t.ID_Trabalhador} className="flex min-w-0 items-stretch gap-2">
               <button
