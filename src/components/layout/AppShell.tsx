@@ -23,7 +23,7 @@ export function AppShell() {
           // key: reinicia a animação de entrada a cada troca de página
           key={pathname}
           // grid-cols-1 (= minmax(0,1fr)) na raiz da página: conteúdo sem quebra não alarga a tela no celular
-          className="w-full max-w-7xl flex-1 animate-entrar [&>.grid]:grid-cols-1 px-4 pt-6 pb-28 outline-none sm:px-6 lg:px-8 lg:pb-10"
+          className="w-full flex-1 animate-entrar [&>.grid]:grid-cols-1 px-4 pt-6 pb-28 outline-none sm:px-6 lg:px-8 lg:pb-10"
         >
           <Outlet />
         </main>
