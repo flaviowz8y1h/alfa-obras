@@ -61,9 +61,9 @@ export function UsuariosPage() {
       ) : consulta.isError ? (
         <ListaErro erro={consulta.error} aoTentar={() => void consulta.refetch()} />
       ) : (
-        <ul className="grid gap-2" aria-label="Usuários">
+        <ul className="grid grid-cols-1 gap-2" aria-label="Usuários">
           {consulta.data.map((u) => (
-            <li key={u.id}>
+            <li key={u.id} className="min-w-0">
               <LinhaUsuario u={u} aoAbrir={() => p.editar(u)} />
             </li>
           ))}
@@ -121,8 +121,8 @@ function LinhaUsuario({ u, aoAbrir }: { u: UsuarioEmpresa; aoAbrir: () => void }
       </span>
       <span className="min-w-0 flex-1">
         <span className="flex items-center gap-2">
-          <span className="truncate text-base font-semibold">{u.nome ?? 'Sem nome'}</span>
-          {u.souEu && <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium">Você</span>}
+          <span className="min-w-0 truncate text-base font-semibold">{u.nome ?? 'Sem nome'}</span>
+          {u.souEu && <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-xs font-medium">Você</span>}
         </span>
         <span className="block truncate text-sm text-muted-foreground">{u.email ?? '—'}</span>
         <span className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
@@ -132,11 +132,11 @@ function LinhaUsuario({ u, aoAbrir }: { u: UsuarioEmpresa; aoAbrir: () => void }
               ? `Último acesso ${formatDistanceToNow(parseISO(u.ultimoAcesso), { locale: ptBR, addSuffix: true })}`
               : 'Nunca entrou'}
           </span>
-          <span className="inline-flex items-center gap-1">
+          <span className="inline-flex min-w-0 items-center gap-1">
             {u.temMfa ? (
-              <ShieldCheck className="size-3.5 text-positivo" aria-hidden="true" />
+              <ShieldCheck className="size-3.5 shrink-0 text-positivo" aria-hidden="true" />
             ) : (
-              <ShieldOff className="size-3.5" aria-hidden="true" />
+              <ShieldOff className="size-3.5 shrink-0" aria-hidden="true" />
             )}
             {u.temMfa ? 'Com verificação em 2 etapas' : 'Sem verificação em 2 etapas'}
           </span>
@@ -148,7 +148,7 @@ function LinhaUsuario({ u, aoAbrir }: { u: UsuarioEmpresa; aoAbrir: () => void }
   )
 
   const classe =
-    'group flex min-h-20 w-full items-center gap-4 rounded-xl border bg-card px-4 py-3 text-left transition-colors duration-150'
+    'group flex min-h-20 min-w-0 w-full items-center gap-3 rounded-xl border bg-card px-3 py-3 text-left transition-colors duration-150 sm:gap-4 sm:px-4'
   return editavel ? (
     <button
       type="button"

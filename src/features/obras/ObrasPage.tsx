@@ -122,7 +122,7 @@ function ResumoCarteira({ linhas }: { linhas: readonly ResumoObra[] }) {
   const itens = [
     { rotulo: 'Carteira em aberto', valor: formatarMoedaCompacta(soma('valor_contratado')) },
     { rotulo: 'A receber', valor: formatarMoedaCompacta(soma('a_receber')) },
-    { rotulo: 'Margem prevista', valor: formatarMoedaCompacta(soma('margem_prevista')) },
+    { rotulo: 'Contrato − custo', valor: formatarMoedaCompacta(soma('margem_prevista')), detalhe: 'Custos futuros não estão descontados.' },
     { rotulo: 'Custo acima de 80%', valor: `${custoAlto} de ${linhas.length}`, alerta: custoAlto > 0 },
   ]
   return (
@@ -131,6 +131,7 @@ function ResumoCarteira({ linhas }: { linhas: readonly ResumoObra[] }) {
         <div key={i.rotulo} className="bg-card px-5 py-4">
           <dt className="text-sm text-muted-foreground">{i.rotulo}</dt>
           <dd className={cn('display numero mt-1 text-xl font-bold sm:text-2xl', i.alerta && 'text-negativo')}>{i.valor}</dd>
+          {i.detalhe && <dd className="mt-1 text-xs text-muted-foreground">{i.detalhe}</dd>}
         </div>
       ))}
     </dl>
@@ -188,10 +189,12 @@ function CartaoObra({ obra: o, resumo: r }: { obra: ObraLista; resumo: ResumoObr
         <Numero rotulo="Saldo em caixa">
           <Saldo valor={saldo} comIcone={false} className="font-semibold" />
         </Numero>
-        <Numero rotulo="Margem prev.">
+        <Numero rotulo="Contrato − custo">
           <Saldo valor={r?.margem_prevista ?? contratado - custo} comIcone={false} className="font-semibold" />
         </Numero>
       </span>
+
+      <span className="text-xs text-muted-foreground">Contrato menos custos registrados. Custos futuros não estão descontados.</span>
 
       <span className="-mt-1 inline-flex items-center justify-end gap-1 text-sm font-medium">
         Ver obra
@@ -204,7 +207,7 @@ function CartaoObra({ obra: o, resumo: r }: { obra: ObraLista; resumo: ResumoObr
 function Numero({ rotulo, children }: { rotulo: string; children: React.ReactNode }) {
   return (
     <span className="grid min-w-0 gap-0.5">
-      <span className="truncate text-xs text-muted-foreground">{rotulo}</span>
+      <span className="text-xs text-muted-foreground">{rotulo}</span>
       <span className="numero truncate font-semibold">{children}</span>
     </span>
   )

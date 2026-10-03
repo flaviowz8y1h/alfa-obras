@@ -163,8 +163,9 @@ export function ObraDetalhePage() {
           valor={<Saldo valor={r?.saldo_caixa} />}
           detalhe={
             <>
-              Margem prevista <span className="numero">{formatarMoeda(r?.margem_prevista)}</span>
+              Contrato − custo <span className="numero">{formatarMoeda(r?.margem_prevista)}</span>
               {contratado > 0 && ` (${formatarPorcento(num(r?.margem_prevista) / contratado)})`}
+              <span className="mt-1 block">Custos futuros não estão descontados.</span>
             </>
           }
         />
