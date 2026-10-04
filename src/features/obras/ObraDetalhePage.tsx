@@ -147,7 +147,7 @@ export function ObraDetalhePage() {
       </header>
 
       {/* ---------- Números ---------- */}
-      <section aria-label="Resumo financeiro da obra" className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <section aria-label="Resumo financeiro da obra" className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
         <Cartao rotulo="Contratado" valor={<Moeda valor={contratado} />} detalhe={`Início ${formatarData(o.Data_Inicio)}`} />
         <Cartao
           rotulo="Recebido"
@@ -168,22 +168,50 @@ export function ObraDetalhePage() {
             <>
               Material <span className="numero">{formatarMoeda(r?.total_saidas)}</span> · Mão de obra{' '}
               <span className="numero">{formatarMoeda(r?.total_mao_de_obra)}</span>
-              {contratado > 0 && (
-                <span className={cn('mt-1 block', metaAtingida && 'font-semibold text-aviso')}>
-                  {metaAtingida ? (
-                    <>Meta de {formatarPorcento(CUSTO_ALTO)} atingida ({formatarPorcento(fracaoCusto)})</>
-                  ) : (
-                    <>
-                      Meta {formatarPorcento(CUSTO_ALTO)} (<span className="numero">{formatarMoeda(metaCusto)}</span>): faltam{' '}
-                      <span className="numero">{formatarMoeda(metaCusto - custo)}</span>
-                    </>
-                  )}
-                </span>
-              )}
             </>
           }
         />
+        {/* Mesmo indicador do resumo de Obras ("Custo a partir de 60%"), só que desta obra. */}
         <Cartao
+          rotulo={`Custo a partir de ${formatarPorcento(CUSTO_ALTO)}`}
+          valor={
+            contratado > 0 ? (
+              <span className={cn('numero', metaAtingida && 'text-aviso')}>{formatarPorcento(fracaoCusto)}</span>
+            ) : (
+              '—'
+            )
+          }
+          trena={
+            contratado > 0 && (
+              <Trena
+                parte={custo}
+                total={metaCusto}
+                rotulo={`Custo sobre a meta de ${formatarPorcento(CUSTO_ALTO)}`}
+                cor={metaAtingida ? 'var(--aviso)' : 'var(--serie-saida)'}
+              />
+            )
+          }
+          detalhe={
+            contratado === 0 ? (
+              'Sem valor contratado para calcular a meta.'
+            ) : custo > contratado ? (
+              <span className="font-semibold text-aviso">
+                Passou do contratado em <span className="numero">{formatarMoeda(custo - contratado)}</span>
+              </span>
+            ) : metaAtingida ? (
+              <span className="font-semibold text-aviso">
+                Meta atingida · limite <span className="numero">{formatarMoeda(metaCusto)}</span>
+              </span>
+            ) : (
+              <>
+                Faltam <span className="numero">{formatarMoeda(metaCusto - custo)}</span> até{' '}
+                <span className="numero">{formatarMoeda(metaCusto)}</span>
+              </>
+            )
+          }
+        />
+        <Cartao
+          className="sm:col-span-2 xl:col-span-1"
           destaque
           rotulo="Saldo em caixa"
           valor={<Saldo valor={r?.saldo_caixa} />}
@@ -276,18 +304,21 @@ function Cartao({
   detalhe,
   trena,
   destaque,
+  className,
 }: {
   rotulo: string
   valor: React.ReactNode
   detalhe: React.ReactNode
   trena?: React.ReactNode
   destaque?: boolean
+  className?: string
 }) {
   return (
     <article
       className={cn(
         '@container flex min-w-0 flex-col gap-3 rounded-xl border bg-card p-5',
         destaque && 'border-transparent bg-marca text-white dark:bg-card dark:ring-1 dark:ring-ring/40',
+        className,
       )}
     >
       <h2
@@ -498,8 +529,8 @@ function EsqueletoDetalhe() {
   return (
     <div className="grid gap-8" role="status" aria-label="Carregando obra">
       <Skeleton className="h-24 rounded-xl" />
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        {Array.from({ length: 4 }, (_, i) => (
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+        {Array.from({ length: 5 }, (_, i) => (
           <Skeleton key={i} className="h-36 rounded-xl" />
         ))}
       </div>
