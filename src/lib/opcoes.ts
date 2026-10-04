@@ -67,6 +67,9 @@ export const FORMAS_PAGAMENTO = [
 
 export const TIPOS_PAGAMENTO_MO = ['Diária', 'Empreitada', 'Adiantamento', 'Outro'] as const
 
+/** Como a locadora cobra (check fLocacoes.Cobranca). */
+export const COBRANCAS_LOCACAO = ['Diária', 'Semanal', 'Quinzenal', 'Mensal', 'Valor fechado'] as const
+
 /** Garante que um valor já salvo (fora da lista) não suma do select ao editar. */
 export function comValorAtual(opcoes: readonly string[], atual: string | null | undefined): string[] {
   return atual && !opcoes.includes(atual) ? [...opcoes, atual] : [...opcoes]

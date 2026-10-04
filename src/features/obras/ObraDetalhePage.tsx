@@ -4,6 +4,7 @@ import {
   ArrowUpFromLine,
   Building2,
   CalendarClock,
+  Forklift,
   Pencil,
   Phone,
   TriangleAlert,
@@ -17,6 +18,8 @@ import { CUSTO_ALTO } from '@/components/painel'
 import { Moeda, Saldo, Trena } from '@/components/valores'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
+import { useLocacoes } from '@/features/locacoes/api'
+import { SeloPrazo } from '@/features/locacoes/componentes'
 import { usePainel } from '@/hooks/use-painel'
 import { usePermissao } from '@/hooks/use-permissao'
 import { cn } from '@/lib/utils'
@@ -142,6 +145,9 @@ export function ObraDetalhePage() {
             <AtalhoLancar para="/lancamentos/mao-de-obra" obra={o.ID_Obra} icone={Wallet}>
               Mão de obra
             </AtalhoLancar>
+            <AtalhoLancar para="/locacoes" obra={o.ID_Obra} icone={Forklift}>
+              Locação
+            </AtalhoLancar>
           </nav>
         )}
       </header>
@@ -225,6 +231,8 @@ export function ObraDetalhePage() {
         />
       </section>
 
+      <LocacoesDaObra id={o.ID_Obra} />
+
       {/* ---------- Gráficos ---------- */}
       <div className="grid gap-4 xl:grid-cols-[3fr_2fr]">
         <Painel titulo="Fluxo mensal">
@@ -272,6 +280,33 @@ export function ObraDetalhePage() {
 }
 
 /* ---------------- Peças ---------------- */
+
+/** Equipamentos alugados que ainda estão nesta obra, do que vence primeiro. Some se não houver. */
+function LocacoesDaObra({ id }: { id: string }) {
+  const locacoes = useLocacoes()
+  const ativas = (locacoes.data ?? []).filter((l) => l.ID_Obra === id && !l.Data_Devolucao)
+  if (ativas.length === 0) return null
+  return (
+    <Painel titulo={`Locações ativas (${ativas.length})`}>
+      <ul className="grid grid-cols-1 divide-y">
+        {ativas.map((l) => (
+          <li key={l.ID_Locacao} className="flex min-w-0 items-center justify-between gap-3 py-3 first:pt-0 last:pb-0">
+            <span className="min-w-0">
+              <span className="block truncate font-semibold">{l.Equipamento}</span>
+              <span className="numero block truncate text-sm text-muted-foreground">
+                {[l.Locadora, `devolver até ${formatarData(l.Data_Devolucao_Prevista)}`].filter(Boolean).join(' · ')}
+              </span>
+            </span>
+            <SeloPrazo locacao={l} />
+          </li>
+        ))}
+      </ul>
+      <Link to="/locacoes" className={buttonVariants({ variant: 'outline', size: 'sm', className: 'min-h-10 justify-self-start' })}>
+        Ver locações
+      </Link>
+    </Painel>
+  )
+}
 
 function AtalhoLancar({
   para,

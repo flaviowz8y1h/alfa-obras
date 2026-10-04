@@ -18,6 +18,7 @@ const categorias = async () => ({ Component: (await paginas.categorias()).Catego
 const saidas = async () => ({ Component: (await paginas.saidas()).SaidasPage })
 const recebimentos = async () => ({ Component: (await paginas.recebimentos()).RecebimentosPage })
 const maoDeObra = async () => ({ Component: (await paginas.maoDeObra()).MaoDeObraPage })
+const locacoes = async () => ({ Component: (await paginas.locacoes()).LocacoesPage })
 
 export const router = createBrowserRouter([
   { path: '/login', element: <LoginPage /> },
@@ -50,6 +51,7 @@ export const router = createBrowserRouter([
           { path: 'obras/:id', lazy: obraDetalhe },
           { path: 'clientes', lazy: clientes },
           { path: 'trabalhadores', lazy: trabalhadores },
+          { path: 'locacoes', lazy: locacoes },
           {
             path: 'lancamentos',
             children: [

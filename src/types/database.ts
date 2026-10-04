@@ -363,6 +363,102 @@ export type Database = {
           },
         ]
       }
+      fLocacoes: {
+        Row: {
+          Atualizado_Em: string | null
+          Atualizado_Por: string | null
+          Cobranca: string | null
+          Criado_Em: string
+          Criado_Por: string | null
+          Data_Devolucao: string | null
+          Data_Devolucao_Prevista: string
+          Data_Retirada: string
+          Equipamento: string
+          ID_Empresa: string
+          ID_Locacao: string
+          ID_Obra: string | null
+          Locadora: string | null
+          Observacao: string | null
+          Quantidade: number
+          Telefone_Locadora: string | null
+          Valor: number | null
+        }
+        Insert: {
+          Atualizado_Em?: string | null
+          Atualizado_Por?: string | null
+          Cobranca?: string | null
+          Criado_Em?: string
+          Criado_Por?: string | null
+          Data_Devolucao?: string | null
+          Data_Devolucao_Prevista: string
+          Data_Retirada: string
+          Equipamento: string
+          ID_Empresa: string
+          ID_Locacao: string
+          ID_Obra?: string | null
+          Locadora?: string | null
+          Observacao?: string | null
+          Quantidade?: number
+          Telefone_Locadora?: string | null
+          Valor?: number | null
+        }
+        Update: {
+          Atualizado_Em?: string | null
+          Atualizado_Por?: string | null
+          Cobranca?: string | null
+          Criado_Em?: string
+          Criado_Por?: string | null
+          Data_Devolucao?: string | null
+          Data_Devolucao_Prevista?: string
+          Data_Retirada?: string
+          Equipamento?: string
+          ID_Empresa?: string
+          ID_Locacao?: string
+          ID_Obra?: string | null
+          Locadora?: string | null
+          Observacao?: string | null
+          Quantidade?: number
+          Telefone_Locadora?: string | null
+          Valor?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fLocacoes_Atualizado_Por_fkey"
+            columns: ["Atualizado_Por"]
+            isOneToOne: false
+            referencedRelation: "dUsuarios"
+            referencedColumns: ["ID_Usuario"]
+          },
+          {
+            foreignKeyName: "fLocacoes_Criado_Por_fkey"
+            columns: ["Criado_Por"]
+            isOneToOne: false
+            referencedRelation: "dUsuarios"
+            referencedColumns: ["ID_Usuario"]
+          },
+          {
+            foreignKeyName: "fLocacoes_ID_Empresa_fkey"
+            columns: ["ID_Empresa"]
+            isOneToOne: false
+            referencedRelation: "dEmpresas"
+            referencedColumns: ["ID_Empresa"]
+          },
+          {
+            foreignKeyName: "fLocacoes_ID_Obra_fkey"
+            columns: ["ID_Empresa", "ID_Obra"]
+            isOneToOne: false
+            referencedRelation: "dObras"
+            referencedColumns: ["ID_Empresa", "ID_Obra"]
+          },
+          {
+            foreignKeyName: "fLocacoes_ID_Obra_fkey"
+            columns: ["ID_Empresa", "ID_Obra"]
+            isOneToOne: false
+            referencedRelation: "vw_resumo_obras"
+            referencedColumns: ["ID_Empresa", "ID_Obra"]
+          },
+        ]
+      }
       fPagamentosMaoDeObra: {
         Row: {
           Atualizado_Em: string | null

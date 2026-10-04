@@ -12,6 +12,7 @@ export const paginas = {
   maoDeObra: () => import('@/features/lancamentos/MaoDeObraPage'),
   analises: () => import('@/features/analises/AnalisesPage'),
   usuarios: () => import('@/features/usuarios/UsuariosPage'),
+  locacoes: () => import('@/features/locacoes/LocacoesPage'),
 }
 
 export function precarregarPaginas() {

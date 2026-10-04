@@ -7,6 +7,8 @@ import { buttonVariants } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { usePagamentosSemana, useTrabalhadores } from '@/features/trabalhadores/api'
 import { alertasDasObras } from '@/features/obras/alertas'
+import { useLocacoes } from '@/features/locacoes/api'
+import { alertasDeLocacoes } from '@/features/locacoes/regras'
 import { usePermissao } from '@/hooks/use-permissao'
 import { cn } from '@/lib/utils'
 import type { ResumoObra } from '@/types/app'
@@ -34,8 +36,11 @@ export function PautaSemana({ obras }: { obras: readonly ResumoObra[] }) {
     [dias, pagamentos.data, trabalhadores.data],
   )
   const alertas = alertasDasObras(obras)
+  const locacoes = useLocacoes()
+  // erro nas locações não derruba a pauta: só ficam fora da contagem
+  const devolucoes = alertasDeLocacoes(locacoes.data ?? [])
   const semDatas = carregando || erro ? [] : linhas.filter((l) => l.semDatas)
-  const pendencias = alertas.length + semDatas.length
+  const pendencias = alertas.length + semDatas.length + devolucoes.length
   const ativos = (trabalhadores.data ?? []).filter((t) => (t.Status ?? 'Ativo') === 'Ativo').length
   const pago = linhas.reduce((s, l) => s + l.valor, 0)
 
@@ -106,6 +111,36 @@ export function PautaSemana({ obras }: { obras: readonly ResumoObra[] }) {
                 </Link>
               </li>
             ))}
+            {devolucoes.map((a) => (
+              <li
+                key={`locacao-${a.id}`}
+                className={cn(
+                  'bg-muted/25 rounded-xl border p-4',
+                  a.nivel === 'critico' ? 'border-negativo/25 bg-negativo-fundo/40' : 'border-aviso/25 bg-aviso-fundo/40',
+                )}
+              >
+                <span
+                  className={cn(
+                    'text-[10px] font-bold tracking-widest uppercase',
+                    a.nivel === 'critico' ? 'text-negativo' : 'text-aviso',
+                  )}
+                >
+                  Locação
+                </span>
+                <h3 className="mt-1 text-base font-bold">{a.titulo}</h3>
+                <p className="text-muted-foreground mt-1 text-sm">{a.texto}</p>
+                <Link
+                  to="/locacoes"
+                  className={buttonVariants({
+                    variant: 'outline',
+                    size: 'sm',
+                    className: 'mt-3 min-h-10',
+                  })}
+                >
+                  Ver locações <ArrowUpRight aria-hidden="true" />
+                </Link>
+              </li>
+            ))}
             {alertas.map((a) => (
               <li
                 key={a.id}
@@ -142,7 +177,7 @@ export function PautaSemana({ obras }: { obras: readonly ResumoObra[] }) {
               <CircleCheck className="text-positivo mx-auto mb-3 size-7" aria-hidden="true" />
               <p className="font-semibold">Tudo em dia na pauta</p>
               <p className="text-muted-foreground mt-1 text-sm">
-                Nenhum alerta de obra ou pagamento com datas faltando nesta semana.
+                Nenhum alerta de obra, locação ou pagamento com datas faltando nesta semana.
               </p>
             </div>
           )}

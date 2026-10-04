@@ -13,6 +13,7 @@ export type Cliente = Tables<'dClientes'>
 export type Obra = Tables<'dObras'>
 export type Trabalhador = Tables<'dTrabalhadores'>
 export type Categoria = Tables<'dCategoriaGastos'>
+export type Locacao = Tables<'fLocacoes'>
 
 type TabelaPublica = keyof Database['public']['Tables']
 
@@ -24,6 +25,7 @@ type IdProprio = {
   dObras: 'ID_Obra'
   dTrabalhadores: 'ID_Trabalhador'
   dUsuarios: never
+  fLocacoes: 'ID_Locacao'
   fPagamentosMaoDeObra: 'ID_Pagamento'
   fRecebimentosObras: 'ID_Recebimento'
   fSaidasObras: 'ID_Saida'
