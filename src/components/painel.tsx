@@ -4,8 +4,8 @@ import { Trena } from '@/components/valores'
 import { cn } from '@/lib/utils'
 import { formatarMoeda, formatarPorcento } from '@/utils/format'
 
-/** A partir desta fração do contratado, o custo da obra vira alerta. */
-export const CUSTO_ALTO = 0.8
+/** Meta de custo: chegando nesta fração do contratado, a obra entra em alerta. */
+export const CUSTO_ALTO = 0.6
 
 /* ---------------- Indicadores ---------------- */
 
@@ -115,7 +115,7 @@ export function TrenaDupla({
 }) {
   const fr = contratado ? recebido / contratado : 0
   const fc = contratado ? custo / contratado : 0
-  const alto = fc > CUSTO_ALTO
+  const alto = fc >= CUSTO_ALTO
   const corCusto = alto ? 'var(--negativo)' : 'var(--serie-saida)'
 
   if (compacta) {

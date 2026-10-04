@@ -13,6 +13,7 @@ import { useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router'
 import { toast } from 'sonner'
 import { ConfirmarExclusao, ListaErro, SeloStatus } from '@/components/cadastro'
+import { CUSTO_ALTO } from '@/components/painel'
 import { Moeda, Saldo, Trena } from '@/components/valores'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -67,6 +68,10 @@ export function ObraDetalhePage() {
   const custo = num(r?.custo_total)
   const atrasada =
     o.Status === 'Em Andamento' && !!o.Previsao_Termino && o.Previsao_Termino < hojeISO()
+  // Meta de custo: até CUSTO_ALTO (60%) do contratado; chegando nela, a obra entra em alerta.
+  const metaCusto = contratado * CUSTO_ALTO
+  const fracaoCusto = contratado > 0 ? custo / contratado : 0
+  const metaAtingida = contratado > 0 && fracaoCusto >= CUSTO_ALTO
 
   return (
     <div className="grid gap-8">
@@ -117,6 +122,15 @@ export function ObraDetalhePage() {
           </p>
         )}
 
+        {metaAtingida && o.Status === 'Em Andamento' && (
+          <p className="flex items-center gap-2 rounded-lg border border-aviso/40 bg-aviso-fundo px-4 py-3 text-sm font-medium text-aviso" role="status">
+            <TriangleAlert className="size-4 shrink-0" aria-hidden="true" />
+            {custo > contratado
+              ? `Custo passou do valor contratado em ${formatarMoeda(custo - contratado)}. Revise o orçamento ou negocie um aditivo.`
+              : `Meta de custo atingida: o custo chegou a ${formatarPorcento(fracaoCusto)} do contratado (meta: até ${formatarPorcento(CUSTO_ALTO)}).`}
+          </p>
+        )}
+
         {podeLancar && (
           <nav aria-label="Lançar nesta obra" className="flex gap-2 overflow-x-auto pb-1">
             <AtalhoLancar para="/lancamentos/recebimentos" obra={o.ID_Obra} icone={ArrowDownToLine}>
@@ -154,6 +168,18 @@ export function ObraDetalhePage() {
             <>
               Material <span className="numero">{formatarMoeda(r?.total_saidas)}</span> · Mão de obra{' '}
               <span className="numero">{formatarMoeda(r?.total_mao_de_obra)}</span>
+              {contratado > 0 && (
+                <span className={cn('mt-1 block', metaAtingida && 'font-semibold text-aviso')}>
+                  {metaAtingida ? (
+                    <>Meta de {formatarPorcento(CUSTO_ALTO)} atingida ({formatarPorcento(fracaoCusto)})</>
+                  ) : (
+                    <>
+                      Meta {formatarPorcento(CUSTO_ALTO)} (<span className="numero">{formatarMoeda(metaCusto)}</span>): faltam{' '}
+                      <span className="numero">{formatarMoeda(metaCusto - custo)}</span>
+                    </>
+                  )}
+                </span>
+              )}
             </>
           }
         />

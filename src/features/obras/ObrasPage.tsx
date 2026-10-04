@@ -119,12 +119,12 @@ export function ObrasPage() {
 
 function ResumoCarteira({ linhas }: { linhas: readonly ResumoObra[] }) {
   const soma = (campo: keyof ResumoObra) => linhas.reduce((t, r) => t + num(r[campo] as number | null), 0)
-  const custoAlto = linhas.filter((r) => num(r.valor_contratado) > 0 && num(r.custo_total) / num(r.valor_contratado) > CUSTO_ALTO).length
+  const custoAlto = linhas.filter((r) => num(r.valor_contratado) > 0 && num(r.custo_total) / num(r.valor_contratado) >= CUSTO_ALTO).length
   const itens = [
     { rotulo: 'Carteira em aberto', valor: formatarMoedaCompacta(soma('valor_contratado')) },
     { rotulo: 'A receber', valor: formatarMoedaCompacta(soma('a_receber')) },
     { rotulo: 'Contrato − custo', valor: formatarMoedaCompacta(soma('margem_prevista')), detalhe: 'Custos futuros não estão descontados.' },
-    { rotulo: 'Custo acima de 80%', valor: `${custoAlto} de ${linhas.length}`, alerta: custoAlto > 0 },
+    { rotulo: `Custo a partir de ${formatarPorcento(CUSTO_ALTO)}`, valor: `${custoAlto} de ${linhas.length}`, alerta: custoAlto > 0 },
   ]
   return (
     <dl aria-label="Resumo das obras em aberto" className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border bg-border lg:grid-cols-4">
@@ -147,7 +147,7 @@ function CartaoObra({ obra: o, resumo: r }: { obra: ObraLista; resumo: ResumoObr
   const custo = num(r?.custo_total)
   const saldo = recebido - custo
   const andamento = o.Status === 'Em Andamento'
-  const custoAlto = andamento && contratado > 0 && custo / contratado > CUSTO_ALTO
+  const custoAlto = andamento && contratado > 0 && custo / contratado >= CUSTO_ALTO
   const entrega = situacaoEntrega(o.Status, o.Previsao_Termino)
 
   return (
