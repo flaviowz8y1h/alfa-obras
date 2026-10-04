@@ -112,6 +112,8 @@ export function useExcluirSaida() {
     onSuccess: () => {
       invalidarTotais(qc, 'fSaidasObras')
       void qc.invalidateQueries({ queryKey: ['dCategoriaGastos'] })
+      // a locação paga por esta saída perde o vínculo (FK on delete set null)
+      void qc.invalidateQueries({ queryKey: ['fLocacoes'] })
     },
   })
 }

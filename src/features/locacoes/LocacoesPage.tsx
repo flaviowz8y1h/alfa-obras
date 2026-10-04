@@ -1,8 +1,9 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { addDays, parseISO } from 'date-fns'
-import { CalendarPlus, Forklift, PackageCheck, Phone } from 'lucide-react'
+import { CalendarPlus, CircleCheck, Forklift, PackageCheck, Phone, ReceiptText } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { Controller, useForm } from 'react-hook-form'
+import { useNavigate } from 'react-router'
 import { toast } from 'sonner'
 import { z } from 'zod'
 import {
@@ -21,6 +22,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
   lerUltimaObra,
+  prepararSaida,
   salvarUltimaObra,
   useNovoPelaUrl,
   useOpcoesObra,
@@ -42,7 +44,7 @@ import {
   useSalvarLocacao,
 } from './api'
 import { SeloPrazo } from './componentes'
-import { AVISO_DEVOLUCAO, custoDoAtraso, situacaoLocacao } from './regras'
+import { AVISO_DEVOLUCAO, custoDoAtraso, situacaoLocacao, valorSugerido } from './regras'
 
 type Filtro = 'ativas' | 'atrasadas' | 'devolvidas' | 'todas'
 
@@ -55,6 +57,9 @@ export function LocacoesPage() {
   const excluir = useExcluirLocacao()
   const devolver = useDevolverLocacao()
   const [prorrogando, setProrrogando] = useState<LocacaoLista | null>(null)
+  const [ofertaPagamento, setOfertaPagamento] = useState<LocacaoLista | null>(null)
+  const podeLancar = usePermissao('lancamentos').criar
+  const lancarPagamento = useLancarPagamento()
   const [busca, setBusca] = useState('')
   const [filtro, setFiltro] = useState<Filtro>('ativas')
   // /locacoes?novo=1&obra=ID (atalho da tela da obra) abre o formulário com a obra escolhida
@@ -83,6 +88,8 @@ export function LocacoesPage() {
   async function marcarDevolvida(l: LocacaoLista) {
     try {
       await devolver.mutateAsync({ id: l.ID_Locacao, data: hojeISO() })
+      // devolveu: hora de lançar o pagamento à locadora, senão o custo não entra na obra
+      if (podeLancar && !l.ID_Saida) setOfertaPagamento({ ...l, Data_Devolucao: hojeISO() })
       toast.success(`${l.Equipamento} marcado como devolvido.`, {
         action: {
           label: 'Desfazer',
@@ -231,6 +238,27 @@ export function LocacoesPage() {
                   )}
                 </div>
               )}
+
+              {situacao === 'devolvida' && (
+                <div className="flex flex-wrap items-center gap-2 border-t pt-3 text-sm">
+                  {l.ID_Saida ? (
+                    <span className="inline-flex items-center gap-1.5 font-medium text-positivo">
+                      <CircleCheck className="size-4" aria-hidden="true" />
+                      Pagamento lançado <span className="numero text-muted-foreground">({l.ID_Saida})</span>
+                    </span>
+                  ) : (
+                    <>
+                      <span className="font-medium text-aviso">Pagamento não lançado</span>
+                      {podeLancar && (
+                        <Button size="sm" variant="outline" className="ml-auto min-h-10" onClick={() => lancarPagamento(l)}>
+                          <ReceiptText aria-hidden="true" />
+                          Lançar pagamento
+                        </Button>
+                      )}
+                    </>
+                  )}
+                </div>
+              )}
             </li>
           ))}
         </ul>
@@ -244,6 +272,15 @@ export function LocacoesPage() {
       />
 
       <FormProrrogar key={prorrogando?.ID_Locacao ?? 'nada'} locacao={prorrogando} aoFechar={() => setProrrogando(null)} />
+
+      <OfertaPagamento
+        locacao={ofertaPagamento}
+        aoFechar={() => setOfertaPagamento(null)}
+        aoLancar={(l) => {
+          setOfertaPagamento(null)
+          lancarPagamento(l)
+        }}
+      />
 
       <ConfirmarExclusao
         aberto={p.excluindo !== null}
@@ -413,7 +450,7 @@ function FormLocacao({
         </Campo>
 
         <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-3">
-          <Campo rotulo="Valor" ajuda="Opcional.">
+          <Campo rotulo="Valor" ajuda="Opcional. Total por período, somando todas as unidades.">
             {(a11y) => (
               <Controller
                 control={control}
@@ -483,6 +520,83 @@ function FormProrrogar({ locacao, aoFechar }: { locacao: LocacaoLista | null; ao
         >
           {(a11y) => <Input {...a11y} type="date" value={data} onChange={(e) => setData(e.target.value)} autoFocus />}
         </Campo>
+      </form>
+    </PainelFormulario>
+  )
+}
+
+/* ---------------- Pagamento à locadora ---------------- */
+
+/** Abre "Nova saída" já preenchida com o pagamento da locação (valor sugerido pelos dias de uso). */
+function useLancarPagamento() {
+  const navigate = useNavigate()
+  return (l: LocacaoLista) => {
+    const sugestao = valorSugerido(l)
+    const qtd = num(l.Quantidade) !== 1 ? ` (×${formatarNumero(l.Quantidade)})` : ''
+    const fim = l.Data_Devolucao ?? hojeISO()
+    prepararSaida({
+      valor: sugestao?.valor,
+      descricao: `Locação ${l.Equipamento}${qtd} — ${formatarData(l.Data_Retirada, 'dd/MM')} a ${formatarData(fim, 'dd/MM')}`,
+      fornecedor: l.Locadora ?? undefined,
+      data: fim > hojeISO() ? hojeISO() : fim,
+      categoriaNome: 'Locação de Equipamentos',
+      semObra: !l.ID_Obra,
+      ajudaValor: sugestao
+        ? `Sugerido: ${sugestao.conta}. Confira com a nota da locadora.`
+        : 'Confira o valor com a nota da locadora.',
+      idLocacao: l.ID_Locacao,
+    })
+    navigate(`/lancamentos/saidas?novo=1${l.ID_Obra ? `&obra=${encodeURIComponent(l.ID_Obra)}` : ''}`)
+  }
+}
+
+function OfertaPagamento({
+  locacao,
+  aoFechar,
+  aoLancar,
+}: {
+  locacao: LocacaoLista | null
+  aoFechar: () => void
+  aoLancar: (l: LocacaoLista) => void
+}) {
+  const sugestao = locacao ? valorSugerido(locacao) : null
+  return (
+    <PainelFormulario
+      aberto={locacao !== null}
+      aoFechar={aoFechar}
+      titulo="Equipamento devolvido"
+      descricao={locacao ? `${locacao.Equipamento}${locacao.Locadora ? ` · ${locacao.Locadora}` : ''}` : undefined}
+      idFormulario="form-oferta-pagamento"
+      salvando={false}
+      rotuloSalvar="Lançar pagamento"
+    >
+      <form
+        id="form-oferta-pagamento"
+        onSubmit={(e) => {
+          e.preventDefault()
+          if (locacao) aoLancar(locacao)
+        }}
+        className="grid gap-4"
+      >
+        <p className="text-muted-foreground">
+          Lance agora o pagamento à locadora para o custo entrar na obra. O formulário de saída abre preenchido
+          para você conferir.
+        </p>
+        {sugestao ? (
+          <div className="rounded-xl border bg-muted/40 p-4">
+            <p className="text-xs font-semibold tracking-wider text-muted-foreground uppercase">Valor sugerido</p>
+            <p className="display numero mt-1 text-3xl font-bold">{formatarMoeda(sugestao.valor)}</p>
+            <p className="mt-1 text-sm text-muted-foreground">{sugestao.conta}</p>
+          </div>
+        ) : (
+          <p className="text-sm text-muted-foreground">
+            Esta locação não tem valor informado: você digita o valor da nota no formulário.
+          </p>
+        )}
+        <p className="text-sm text-muted-foreground">
+          Prefere lançar depois? A locação fica marcada como <strong>pagamento não lançado</strong> e aparece nas
+          pendências da Pauta.
+        </p>
       </form>
     </PainelFormulario>
   )

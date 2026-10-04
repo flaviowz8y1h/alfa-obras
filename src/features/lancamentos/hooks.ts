@@ -60,6 +60,37 @@ export function usePreencherUltimaObra(
   }, [ativo, opcoes])
 }
 
+/* ---------------- Saída já preenchida (ex.: pagamento de uma locação) ---------------- */
+
+export type SaidaPreparada = {
+  valor?: number
+  descricao?: string
+  fornecedor?: string
+  data?: string
+  /** Escolhe a categoria cujo nome contém este texto (sem acento/maiúscula). */
+  categoriaNome?: string
+  semObra?: boolean
+  /** Ajuda mostrada sob o valor (ex.: como o valor foi sugerido). */
+  ajudaValor?: string
+  /** Locação paga por esta saída: liga as duas ao salvar. */
+  idLocacao?: string
+}
+
+// Guardada em memória entre a tela de origem e o formulário de saída; usada uma vez.
+let saidaPreparada: SaidaPreparada | null = null
+
+export function prepararSaida(dados: SaidaPreparada) {
+  saidaPreparada = dados
+}
+
+export function lerSaidaPreparada(): SaidaPreparada | null {
+  return saidaPreparada
+}
+
+export function limparSaidaPreparada() {
+  saidaPreparada = null
+}
+
 /* ---------------- ?novo=1 abre o formulário direto ---------------- */
 
 /**

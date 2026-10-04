@@ -95,6 +95,17 @@ export function useProrrogarLocacao() {
   })
 }
 
+/** Liga a locação à saída que pagou a locadora (chamado pelo formulário de saída). */
+export async function vincularPagamentoLocacao(idLocacao: string, idSaida: string) {
+  const { data, error } = await supabase
+    .from('fLocacoes')
+    .update({ ID_Saida: idSaida })
+    .eq('ID_Locacao', idLocacao)
+    .select('ID_Locacao')
+  if (error) throw error
+  exigirLinhas(data)
+}
+
 export function useExcluirLocacao() {
   const invalidar = useInvalidar()
   return useMutation({

@@ -377,6 +377,7 @@ export type Database = {
           ID_Empresa: string
           ID_Locacao: string
           ID_Obra: string | null
+          ID_Saida: string | null
           Locadora: string | null
           Observacao: string | null
           Quantidade: number
@@ -396,6 +397,7 @@ export type Database = {
           ID_Empresa: string
           ID_Locacao: string
           ID_Obra?: string | null
+          ID_Saida?: string | null
           Locadora?: string | null
           Observacao?: string | null
           Quantidade?: number
@@ -415,6 +417,7 @@ export type Database = {
           ID_Empresa?: string
           ID_Locacao?: string
           ID_Obra?: string | null
+          ID_Saida?: string | null
           Locadora?: string | null
           Observacao?: string | null
           Quantidade?: number
@@ -456,6 +459,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_resumo_obras"
             referencedColumns: ["ID_Empresa", "ID_Obra"]
+          },
+          {
+            foreignKeyName: "fLocacoes_ID_Saida_fkey"
+            columns: ["ID_Empresa", "ID_Saida"]
+            isOneToOne: false
+            referencedRelation: "fSaidasObras"
+            referencedColumns: ["ID_Empresa", "ID_Saida"]
           },
         ]
       }

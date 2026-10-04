@@ -1,5 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useMemo, useState } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
+import { useEffect, useEffectEvent, useMemo, useState } from 'react'
 import { Controller, useForm, useWatch } from 'react-hook-form'
 import { toast } from 'sonner'
 import { z } from 'zod'
@@ -19,18 +20,21 @@ import { apagarComprovante, comprovanteInicial, enviarComprovante } from '@/lib/
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { type CategoriaLista, useCategorias } from '@/features/categorias/api'
+import { CHAVE_LOCACOES, vincularPagamentoLocacao } from '@/features/locacoes/api'
 import { type EstadoPainel, usePainel } from '@/hooks/use-painel'
 import { usePermissao, usePodeEditarLancamento } from '@/hooks/use-permissao'
 import { FORMAS_PAGAMENTO, comValorAtual } from '@/lib/opcoes'
 import { mensagemDeErro } from '@/utils/erros'
 import { hojeISO, num } from '@/utils/format'
-import { contem, limpar } from '@/utils/texto'
+import { contem, limpar, normalizar } from '@/utils/texto'
 import { type SaidaLista, useExcluirSaida, useFornecedores, useSaidas, useSalvarSaida } from './api'
 import { avisoDataAntiga, dataLancamento } from './data'
 import { EscolhaOpcao, FiltrosLancamento, ListaLancamentos, TotalPeriodo } from './comum'
 import {
   ehContinuar,
+  lerSaidaPreparada,
   lerUltimaObra,
+  limparSaidaPreparada,
   salvarUltimaObra,
   useFiltrosLancamento,
   useNovoPelaUrl,
@@ -186,6 +190,13 @@ function FormSaida({
     .map((c) => ({ valor: c.ID_Categoria, rotulo: c.Nome_Categoria ?? c.ID_Categoria }))
 
   const ultimaObra = lerUltimaObra()
+  // vindo de "Lançar pagamento" de uma locação: valores sugeridos (usados uma vez)
+  const [pre] = useState(() => (estado.modo === 'novo' ? lerSaidaPreparada() : null))
+  useEffect(() => {
+    if (estado.modo === 'novo') limparSaidaPreparada()
+  }, [estado.modo])
+  const [locacaoPendente, setLocacaoPendente] = useState(pre?.idLocacao ?? null)
+  const qc = useQueryClient()
   const {
     register,
     control,
@@ -198,17 +209,19 @@ function FormSaida({
   } = useForm<Dados>({
     resolver: zodResolver(esquema),
     defaultValues: {
-      valor: registro?.Valor != null ? num(registro.Valor) : undefined,
+      valor: registro?.Valor != null ? num(registro.Valor) : pre?.valor,
       obra: registro
         ? (registro.ID_Obra ?? SEM_OBRA)
-        : obras.opcoes.some((o) => o.valor === ultimaObra)
+        : pre?.semObra
+          ? SEM_OBRA
+          : obras.opcoes.some((o) => o.valor === ultimaObra)
           ? ultimaObra
           : '',
       categoria: registro?.ID_Categoria ?? '',
-      data: registro?.Data_Saida ?? hojeISO(),
+      data: registro?.Data_Saida ?? pre?.data ?? hojeISO(),
       forma: registro?.Forma_Pagamento ?? 'PIX',
-      fornecedor: registro?.Fornecedor_Local ?? '',
-      descricao: registro?.Descricao ?? '',
+      fornecedor: registro?.Fornecedor_Local ?? pre?.fornecedor ?? '',
+      descricao: registro?.Descricao ?? pre?.descricao ?? '',
       nota: registro?.Numero_Nota_Fiscal ?? '',
     },
   })
@@ -220,6 +233,17 @@ function FormSaida({
   usePreencherUltimaObra(obras.opcoes, !registro, (id) => {
     if (!getValues('obra')) setValue('obra', id)
   })
+
+  // a categoria sugerida (ex.: "Locação de Equipamentos") só dá para escolher quando a lista chega
+  const preencherCategoria = useEffectEvent((lista: readonly CategoriaLista[]) => {
+    if (!pre?.categoriaNome || getValues('categoria')) return
+    const alvo = normalizar(pre.categoriaNome)
+    const achada = lista.find((c) => c.Status !== 'Inativo' && normalizar(c.Nome_Categoria).includes(alvo))
+    if (achada) setValue('categoria', achada.ID_Categoria)
+  })
+  useEffect(() => {
+    if (categorias.data) preencherCategoria(categorias.data)
+  }, [categorias.data])
 
   const { idEmpresa } = useUsuarioLogado()
   const [comprovante, setComprovante] = useState(() => comprovanteInicial(registro?.Comprovante_URL ?? null))
@@ -242,8 +266,9 @@ function FormSaida({
     }
     const caminhoFinal = caminhoNovo ?? (comprovante.remover ? null : comprovante.atual)
 
+    let salva: { ID_Saida: string }
     try {
-      await salvar.mutateAsync({
+      salva = await salvar.mutateAsync({
         id: registro?.ID_Saida,
         dados: {
           ID_Obra: d.obra === SEM_OBRA ? null : d.obra,
@@ -266,6 +291,17 @@ function FormSaida({
 
     // 2) o arquivo antigo só sai depois que o lançamento já aponta para o novo
     if (comprovante.atual && comprovante.atual !== caminhoFinal) await apagarComprovante(comprovante.atual)
+
+    // pagamento de locação: liga a saída à locação (uma vez só, mesmo com "lançar outro")
+    if (locacaoPendente) {
+      try {
+        await vincularPagamentoLocacao(locacaoPendente, salva.ID_Saida)
+        setLocacaoPendente(null)
+        void qc.invalidateQueries({ queryKey: [CHAVE_LOCACOES] })
+      } catch (e) {
+        toast.warning(`Saída lançada, mas não foi possível marcar a locação como paga. ${mensagemDeErro(e)}`)
+      }
+    }
 
     if (d.obra !== SEM_OBRA) salvarUltimaObra(d.obra)
     toast.success(registro ? 'Saída atualizada.' : 'Saída lançada.')
@@ -292,7 +328,7 @@ function FormSaida({
       aoExcluir={registro && aoExcluir ? () => aoExcluir(registro) : undefined}
     >
       <form id="form-saida" onSubmit={handleSubmit(enviar)} className="grid gap-5" noValidate>
-        <Campo rotulo="Valor" erro={errors.valor?.message}>
+        <Campo rotulo="Valor" erro={errors.valor?.message} ajuda={pre?.ajudaValor}>
           {(a11y) => (
             <Controller
               control={control}
