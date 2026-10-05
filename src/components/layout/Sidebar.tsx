@@ -5,7 +5,7 @@ import { NAVEGACAO, type ItemNav, visivelPara } from './navegacao'
 
 const classeLink = ({ isActive }: { isActive: boolean }) =>
   cn(
-    'group relative flex min-h-11 items-center gap-3 rounded-lg px-3 text-[0.9375rem] font-medium transition-colors duration-150',
+    'group relative flex min-h-10 items-center gap-3 rounded-lg px-3 text-[0.9375rem] font-medium transition-colors duration-150',
     'focus-visible:ring-3 focus-visible:ring-sidebar-ring/60 focus-visible:outline-none',
     isActive
       ? 'bg-sidebar-accent text-sidebar-accent-foreground before:absolute before:inset-y-2 before:-left-3 before:w-1 before:rounded-r-full before:bg-dourado'
@@ -27,13 +27,14 @@ export function Sidebar() {
 
   return (
     <aside className="sticky top-0 isolate hidden h-dvh w-64 shrink-0 flex-col overflow-hidden bg-sidebar text-sidebar-foreground lg:flex">
-      <div className="flex flex-col items-center px-6 pt-4 pb-3">
+      {/* compacto de propósito: o menu inteiro cabe sem rolagem num notebook 1366×768 (perfil admin) */}
+      <div className="flex flex-col items-center px-6 pt-3 pb-2">
         <img
           src="/logo-alfa-clara.webp"
           alt="Alfa Construções — Engenharia de alto padrão"
           width={1024}
           height={1022}
-          className="h-auto w-32"
+          className="h-auto w-24"
           decoding="async"
         />
         <p className="mt-2 text-center text-xs leading-snug text-sidebar-foreground/75">
@@ -52,7 +53,7 @@ export function Sidebar() {
             <li key={item.para}>
               {item.filhos ? (
                 <>
-                  <p className="mt-4 mb-1 px-3 text-xs font-semibold tracking-wider text-sidebar-foreground/55 uppercase">
+                  <p className="mt-2 mb-1 px-3 text-xs font-semibold tracking-wider text-sidebar-foreground/55 uppercase">
                     {item.rotulo}
                   </p>
                   <ul className="grid gap-1">
@@ -62,7 +63,7 @@ export function Sidebar() {
                       </li>
                     ))}
                   </ul>
-                  <div className="mt-4" />
+                  <div className="mt-2" />
                 </>
               ) : (
                 <Link item={item} />
