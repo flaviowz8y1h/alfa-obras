@@ -53,8 +53,16 @@ function lerClaims(token: string): Record<string, unknown> {
 }
 
 function validarSenha(senha: unknown): string {
-  if (typeof senha !== 'string' || senha.length < 8 || !/[A-Za-z]/.test(senha) || !/\d/.test(senha)) {
-    throw new ErroHttp(400, 'A senha precisa ter pelo menos 8 caracteres, com letras e números.')
+  // Mesma regra configurada no Supabase Auth (Authentication → senhas).
+  if (
+    typeof senha !== 'string' ||
+    senha.length < 10 ||
+    !/[a-z]/.test(senha) ||
+    !/[A-Z]/.test(senha) ||
+    !/\d/.test(senha) ||
+    !/[^A-Za-z0-9]/.test(senha)
+  ) {
+    throw new ErroHttp(400, 'A senha precisa ter pelo menos 10 caracteres, com maiúscula, minúscula, número e símbolo.')
   }
   return senha
 }
@@ -70,6 +78,18 @@ function validarNome(nome: unknown): string {
   const n = typeof nome === 'string' ? nome.replace(/\s+/g, ' ').trim() : ''
   if (n.length < 2) throw new ErroHttp(400, 'Informe o nome.')
   return n
+}
+
+/** Traduz a recusa da API de Auth ao criar o login (o motivo real ajuda a resolver). */
+function motivoFalhaLogin(erro: { code?: string; message?: string } | null): string {
+  const codigo = erro?.code ?? ''
+  const msg = erro?.message ?? ''
+  if (codigo === 'email_exists' || /already/i.test(msg)) return 'Já existe um usuário com este e-mail.'
+  if (codigo === 'weak_password' || /password/i.test(msg)) {
+    return 'A senha não atende às regras do Supabase (Authentication → configurações de senha). Gere outra ou ajuste a regra.'
+  }
+  if (codigo === 'email_address_invalid' || /email/i.test(msg)) return 'O Supabase recusou este e-mail. Confira se está certo.'
+  return `Não foi possível criar o login (${codigo || msg || 'motivo desconhecido'}).`
 }
 
 Deno.serve(async (req) => {
@@ -168,8 +188,8 @@ async function atender(req: Request): Promise<Response> {
           user_metadata: { nome },
         })
         if (erroCriar || !criado.user) {
-          const jaExiste = erroCriar?.code === 'email_exists' || /already/i.test(erroCriar?.message ?? '')
-          throw new ErroHttp(400, jaExiste ? 'Já existe um usuário com este e-mail.' : 'Não foi possível criar o login.')
+          console.error('createUser', erroCriar?.code, erroCriar?.status, erroCriar?.message)
+          throw new ErroHttp(400, motivoFalhaLogin(erroCriar))
         }
 
         const { error: erroPerfil } = await db.from('dUsuarios').insert({

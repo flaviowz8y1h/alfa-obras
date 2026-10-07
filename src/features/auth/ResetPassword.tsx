@@ -102,9 +102,11 @@ const esquemaSenha = z
   .object({
     senha: z
       .string()
-      .min(8, 'Use pelo menos 8 caracteres.')
-      .regex(/[A-Za-z]/, 'Inclua pelo menos uma letra.')
-      .regex(/\d/, 'Inclua pelo menos um número.'),
+      .min(10, 'Use pelo menos 10 caracteres.')
+      .regex(/[a-z]/, 'Inclua pelo menos uma letra minúscula.')
+      .regex(/[A-Z]/, 'Inclua pelo menos uma letra maiúscula.')
+      .regex(/\d/, 'Inclua pelo menos um número.')
+      .regex(/[^A-Za-z0-9]/, 'Inclua pelo menos um símbolo (ex.: ! @ # $).'),
     confirmacao: z.string(),
   })
   .refine((d) => d.senha === d.confirmacao, {
@@ -172,7 +174,7 @@ export function NovaSenhaPage() {
         <Campo
           rotulo="Nova senha"
           erro={errors.senha?.message}
-          ajuda="Mínimo de 8 caracteres, com letras e números."
+          ajuda="Mínimo de 10 caracteres, com maiúscula, minúscula, número e símbolo."
         >
           {(a11y) => (
             <Input {...a11y} {...register('senha')} type="password" autoComplete="new-password" />

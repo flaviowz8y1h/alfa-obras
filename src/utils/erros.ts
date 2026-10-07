@@ -9,7 +9,7 @@ const MENSAGENS_AUTH: Record<string, string> = {
   mfa_verification_failed: 'Código inválido ou expirado. Confira o app autenticador.',
   mfa_challenge_expired: 'O desafio expirou. Tente de novo.',
   same_password: 'A nova senha precisa ser diferente da atual.',
-  weak_password: 'Senha fraca. Use pelo menos 8 caracteres, misturando letras e números.',
+  weak_password: 'Senha fraca. Use pelo menos 10 caracteres, com maiúscula, minúscula, número e símbolo.',
   insufficient_aal: 'Confirme o código de verificação em duas etapas antes de continuar.',
   session_not_found: 'Sua sessão expirou. Entre novamente.',
 }

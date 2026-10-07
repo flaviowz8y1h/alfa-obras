@@ -61,16 +61,26 @@ export function useAcaoUsuario() {
   })
 }
 
-/** Senha inicial legível: 10 caracteres, sem letras/números ambíguos (0/O, 1/l/I). */
+/**
+ * Senha inicial legível: 12 caracteres, sem letras/números ambíguos (0/O, 1/l/I).
+ * Segue a regra de senha do Supabase Auth: minúscula, maiúscula, número e símbolo.
+ */
 export function gerarSenha(): string {
-  const letras = 'abcdefghjkmnpqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ'
+  const minusculas = 'abcdefghjkmnpqrstuvwxyz'
+  const maiusculas = 'ABCDEFGHJKMNPQRSTUVWXYZ'
   const digitos = '23456789'
-  const todos = letras + digitos
-  const aleatorio = new Uint32Array(10)
+  const simbolos = '!@#$%&*?'
+  const todos = minusculas + maiusculas + digitos + simbolos
+  const aleatorio = new Uint32Array(24)
   crypto.getRandomValues(aleatorio)
-  const chars = Array.from(aleatorio, (n) => todos[n % todos.length]!)
-  // garante ao menos uma letra e um número (regra da senha)
-  chars[0] = letras[aleatorio[0]! % letras.length]!
-  chars[9] = digitos[aleatorio[9]! % digitos.length]!
+  const sorteia = (de: string, i: number) => de[aleatorio[i]! % de.length]!
+  // uma de cada grupo obrigatório + o resto de qualquer grupo
+  const chars = [sorteia(minusculas, 0), sorteia(maiusculas, 1), sorteia(digitos, 2), sorteia(simbolos, 3)]
+  for (let i = 4; i < 12; i++) chars.push(sorteia(todos, i))
+  // embaralha para os obrigatórios não ficarem sempre no começo
+  for (let i = chars.length - 1; i > 0; i--) {
+    const j = aleatorio[12 + i]! % (i + 1)
+    ;[chars[i], chars[j]] = [chars[j]!, chars[i]!]
+  }
   return chars.join('')
 }

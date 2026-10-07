@@ -169,9 +169,11 @@ function LinhaUsuario({ u, aoAbrir }: { u: UsuarioEmpresa; aoAbrir: () => void }
 
 const regraSenha = z
   .string()
-  .min(8, 'Use pelo menos 8 caracteres.')
-  .regex(/[A-Za-z]/, 'Inclua pelo menos uma letra.')
+  .min(10, 'Use pelo menos 10 caracteres.')
+  .regex(/[a-z]/, 'Inclua pelo menos uma letra minúscula.')
+  .regex(/[A-Z]/, 'Inclua pelo menos uma letra maiúscula.')
   .regex(/\d/, 'Inclua pelo menos um número.')
+  .regex(/[^A-Za-z0-9]/, 'Inclua pelo menos um símbolo (ex.: ! @ # $).')
 
 const esquemaNovo = z.object({
   nome: z.string().trim().min(2, 'Informe o nome.'),
